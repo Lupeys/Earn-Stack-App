@@ -2,96 +2,125 @@ import { useEffect, useState } from "react";
 import { fetchApi } from "../utils/api";
 import Navbar from "@/components/Navbar";
 
+type Submission = {
+  id: number;
+  task_id: number;
+  task_title: string;
+  user_id: number;
+  user_email: string;
+  display_name: string;
+  proof_data: string;
+  status: string;
+  submitted_at: string;
+  reviewer_notes: string | null;
+};
+
+type Payout = {
+  id: number;
+  user_id: number;
+  user_email: string;
+  display_name: string;
+  paypal_email: string;
+  amount_cad: number;
+  status: string;
+  requested_at: string;
+};
+
+type Task = {
+  id: number;
+  title: string;
+  task_type: string;
+  payout_cad: number;
+  current_completions: number;
+  max_completions: number;
+  status: string;
+};
+
 export default function Admin() {
-  const [tab, setTab] = useState<"tasks" | "payouts">("tasks");
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [payouts, setPayouts] = useState<any[]>([]);
+  const [tab, setTab] = useState<"submissions" | "payouts" | "tasks">("submissions");
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
 
   useEffect(() => {
     loadTab();
   }, [tab]);
 
+  function notify(msg: string, type: "success" | "error" = "success") {
+    setMessage(msg);
+    setMessageType(type);
+    setTimeout(() => setMessage(""), 3500);
+  }
+
   async function loadTab() {
     setLoading(true);
-    setMessage("");
     try {
-      if (tab === "tasks") {
+      if (tab === "submissions") {
+        const res = await fetchApi("/api/admin/submissions");
+        const data = await res.json();
+        setSubmissions(data.submissions || []);
+      } else if (tab === "payouts") {
+        const res = await fetchApi("/api/admin/payouts");
+        const data = await res.json();
+        setPayouts(data.payouts || []);
+      } else {
         const res = await fetchApi("/api/admin/tasks");
         const data = await res.json();
         setTasks(data.tasks || []);
-      } else {
-        const res = await fetchApi("/api/admin/payouts/pending");
-        const data = await res.json();
-        setPayouts(data.payouts || []);
       }
     } catch {
-      setMessage("Failed to load data");
+      notify("Failed to load data", "error");
     } finally {
       setLoading(false);
     }
   }
 
-  async function approveCompletion(taskId: number, completionId: number) {
+  async function reviewSubmission(id: number, status: "approved" | "rejected" | "flagged", notes?: string) {
     try {
-      const res = await fetchApi(`/api/admin/tasks/${taskId}/review`, {
-        method: "POST",
-        body: JSON.stringify({ completion_id: completionId, status: "approved" }),
+      const res = await fetchApi(`/api/admin/submissions/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status, notes: notes || null }),
       });
+      const data = await res.json();
       if (res.ok) {
-        setMessage("Completion approved");
-        loadTab();
-      }
-    } catch {
-      setMessage("Approval failed");
-    }
-  }
-
-  async function rejectCompletion(taskId: number, completionId: number) {
-    try {
-      const res = await fetchApi(`/api/admin/tasks/${taskId}/review`, {
-        method: "POST",
-        body: JSON.stringify({ completion_id: completionId, status: "rejected" }),
-      });
-      if (res.ok) {
-        setMessage("Completion rejected");
-        loadTab();
-      }
-    } catch {
-      setMessage("Rejection failed");
-    }
-  }
-
-  async function approvePayout(payoutId: number) {
-    try {
-      const res = await fetchApi(`/api/admin/payouts/${payoutId}/approve`, { method: "POST" });
-      if (res.ok) {
-        setMessage("Payout approved");
+        notify(`Submission ${status}`);
         loadTab();
       } else {
-        const data = await res.json();
-        setMessage(data.error || "Approval failed");
+        notify(data.error || "Action failed", "error");
       }
     } catch {
-      setMessage("Approval failed");
+      notify("Request failed", "error");
     }
   }
 
-  async function rejectPayout(payoutId: number) {
+  async function reviewPayout(id: number, action: "approved" | "rejected") {
     try {
-      const res = await fetchApi(`/api/admin/payouts/${payoutId}/reject`, { method: "POST" });
+      const res = await fetchApi(`/api/admin/payouts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: action }),
+      });
+      const data = await res.json();
       if (res.ok) {
-        setMessage("Payout rejected");
+        notify(`Payout ${action}`);
         loadTab();
       } else {
-        const data = await res.json();
-        setMessage(data.error || "Rejection failed");
+        notify(data.error || "Action failed", "error");
       }
     } catch {
-      setMessage("Rejection failed");
+      notify("Request failed", "error");
     }
   }
+
+  // Group flat submissions list by task title for display
+  const submissionsByTask = submissions.reduce<Record<string, Submission[]>>((acc, s) => {
+    const key = `${s.task_id}::${s.task_title}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,123 +129,146 @@ export default function Admin() {
         <h1 className="text-2xl font-bold mb-6">Admin Panel</h1>
 
         {message && (
-          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm mb-4">
+          <div className={`p-3 rounded-lg text-sm mb-4 border ${
+            messageType === "success"
+              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+              : "bg-red-500/10 border-red-500/20 text-red-400"
+          }`}>
             {message}
           </div>
         )}
 
+        {/* Tab bar */}
         <div className="flex gap-1 mb-6 p-1 rounded-xl bg-zinc-900 inline-flex">
-          <button
-            onClick={() => setTab("tasks")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === "tasks" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            Tasks & Completions
-          </button>
-          <button
-            onClick={() => setTab("payouts")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === "payouts" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            Pending Payouts
-          </button>
+          {(["submissions", "payouts", "tasks"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                tab === t ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              {t === "submissions" ? "Pending Reviews" : t === "payouts" ? "Pending Payouts" : "Tasks"}
+            </button>
+          ))}
         </div>
 
         {loading ? (
           <p className="text-muted-foreground">Loading...</p>
-        ) : tab === "tasks" ? (
+        ) : tab === "submissions" ? (
+          /* ── Submissions tab ── */
           <div className="space-y-4">
-            {tasks.length === 0 && <p className="text-muted-foreground">No tasks to review.</p>}
-            {tasks.map((task: any) => (
-              <details key={task.id} className="p-4 rounded-xl border border-zinc-800 bg-card group">
-                <summary className="cursor-pointer font-medium">
-                  {task.title}
-                  <span className="text-xs ml-2 text-muted-foreground">
-                    ({task.completion_count} completions)
-                  </span>
-                </summary>
-                {(!task.completions || task.completions.length === 0) ? (
-                  <p className="text-muted-foreground text-sm mt-3">No pending completions.</p>
-                ) : (
-                  <div className="mt-3 space-y-3">
-                    {task.completions.map((c: any) => (
-                      <div key={c.id} className="p-3 rounded-lg bg-zinc-900 border border-zinc-800">
+            {Object.keys(submissionsByTask).length === 0 && (
+              <p className="text-muted-foreground">No pending submissions. 🎉</p>
+            )}
+            {Object.entries(submissionsByTask).map(([key, subs]) => {
+              const [, taskTitle] = key.split("::");
+              return (
+                <details key={key} open className="rounded-xl border border-zinc-800 bg-card">
+                  <summary className="cursor-pointer px-4 py-3 font-medium flex items-center justify-between">
+                    <span>{taskTitle}</span>
+                    <span className="text-xs text-muted-foreground">{subs.length} pending</span>
+                  </summary>
+                  <div className="px-4 pb-4 space-y-3">
+                    {subs.map((s) => (
+                      <div key={s.id} className="p-3 rounded-lg bg-zinc-900 border border-zinc-800">
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium">User #{c.user_id}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{s.display_name}</p>
+                            <p className="text-xs text-muted-foreground">{s.user_email}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {new Date(c.completed_at).toLocaleDateString("en-CA")}
+                              {new Date(s.submitted_at).toLocaleString("en-CA")}
                             </p>
-                            {c.proof_data && (
-                              <pre className="text-xs bg-zinc-950 rounded p-2 mt-2 overflow-auto max-h-32">
-                                {c.proof_data}
+                            {s.proof_data && (
+                              <pre className="text-xs bg-zinc-950 rounded p-2 mt-2 overflow-auto max-h-32 whitespace-pre-wrap break-words">
+                                {s.proof_data}
                               </pre>
                             )}
                           </div>
-                          {c.status === "pending" && (
-                            <div className="flex gap-2 flex-shrink-0">
-                              <button
-                                onClick={() => approveCompletion(task.id, c.id)}
-                                className="px-3 py-1 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => rejectCompletion(task.id, c.id)}
-                                className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 border border-red-500/20"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                          {c.status !== "pending" && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                              c.status === "approved"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-red-500/10 text-red-400 border-red-500/20"
-                            }`}>
-                              {c.status}
-                            </span>
-                          )}
+                          <div className="flex gap-2 flex-shrink-0 mt-1">
+                            <button
+                              onClick={() => reviewSubmission(s.id, "approved")}
+                              className="px-3 py-1 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => reviewSubmission(s.id, "rejected")}
+                              className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 border border-red-500/20 transition-colors"
+                            >
+                              Reject
+                            </button>
+                            <button
+                              onClick={() => reviewSubmission(s.id, "flagged", "Flagged for manual review")}
+                              className="px-3 py-1 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-semibold hover:bg-yellow-500/20 border border-yellow-500/20 transition-colors"
+                            >
+                              Flag
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                )}
-              </details>
-            ))}
+                </details>
+              );
+            })}
           </div>
-        ) : (
+        ) : tab === "payouts" ? (
+          /* ── Payouts tab ── */
           <div className="space-y-4">
             {payouts.length === 0 && <p className="text-muted-foreground">No pending payouts.</p>}
-            {payouts.map((p: any) => (
+            {payouts.map((p) => (
               <div key={p.id} className="p-4 rounded-xl border border-zinc-800 bg-card flex items-center justify-between gap-4">
                 <div>
-                  <p className="font-medium">User #{p.user_id}</p>
-                  <p className="text-sm text-muted-foreground">{p.paypal_email}</p>
+                  <p className="font-medium">{p.display_name}</p>
+                  <p className="text-sm text-muted-foreground">{p.user_email}</p>
+                  <p className="text-xs text-muted-foreground">PayPal: {p.paypal_email}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Requested {new Date(p.created_at).toLocaleDateString("en-CA")}
+                    Requested {new Date(p.requested_at).toLocaleString("en-CA")}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-lg font-bold text-emerald-400">${p.amount_cad.toFixed(2)}</p>
-                  <div className="flex gap-2 mt-2">
+                  <p className="text-lg font-bold text-emerald-400">${p.amount_cad.toFixed(2)} CAD</p>
+                  <div className="flex gap-2 mt-2 justify-end">
                     <button
-                      onClick={() => approvePayout(p.id)}
-                      className="px-3 py-1 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
+                      onClick={() => reviewPayout(p.id, "approved")}
+                      className="px-3 py-1 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
                     >
                       Approve
                     </button>
                     <button
-                      onClick={() => rejectPayout(p.id)}
-                      className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 border border-red-500/20"
+                      onClick={() => reviewPayout(p.id, "rejected")}
+                      className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 border border-red-500/20 transition-colors"
                     >
                       Reject
                     </button>
                   </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* ── Tasks tab ── */
+          <div className="space-y-3">
+            {tasks.length === 0 && <p className="text-muted-foreground">No tasks found.</p>}
+            {tasks.map((t) => (
+              <div key={t.id} className="p-4 rounded-xl border border-zinc-800 bg-card flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium">{t.title}</p>
+                  <p className="text-xs text-muted-foreground capitalize mt-0.5">
+                    {t.task_type.replace("_", " ")} · ${t.payout_cad.toFixed(2)} CAD · {t.effort_minutes ?? "?"} min
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.current_completions}/{t.max_completions === 0 ? "∞" : t.max_completions} completions
+                  </p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${
+                  t.status === "active"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : "bg-zinc-700/30 text-zinc-400 border-zinc-700"
+                }`}>
+                  {t.status}
+                </span>
               </div>
             ))}
           </div>
