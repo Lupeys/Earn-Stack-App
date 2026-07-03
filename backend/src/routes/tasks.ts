@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { getDb } from "../db/schema";
 import { authMiddleware } from "../middleware/auth";
+import { fraudSubmitMiddleware } from "../middleware/fraud";
 import type { AuthPayload } from "../lib/jwt";
 
 const tasks = new Hono();
@@ -19,10 +20,17 @@ tasks.get("/:id", (c) => {
   return c.json({ task: row });
 });
 
-tasks.post("/:id/submit", async (c) => {
+// Fraud middleware runs BEFORE the submit handler
+tasks.post("/:id/submit", fraudSubmitMiddleware, async (c) => {
   const user = c.get("user") as AuthPayload;
   const taskId = c.req.param("id");
-  const { proof_data } = await c.req.json();
+
+  let proof_data = "";
+  try {
+    const body = await c.req.json();
+    proof_data = body?.proof_data || "";
+  } catch { /* allow empty body */ }
+
   const db = getDb();
 
   const task = db.query("SELECT * FROM tasks WHERE id = ? AND status = 'active'").get(taskId) as any;
@@ -39,7 +47,7 @@ tasks.post("/:id/submit", async (c) => {
 
   db.run(
     "INSERT INTO task_completions (task_id, user_id, proof_data, status) VALUES (?, ?, ?, 'pending_review')",
-    [taskId, user.userId, proof_data || ""]
+    [taskId, user.userId, proof_data]
   );
 
   db.run("UPDATE tasks SET current_completions = current_completions + 1 WHERE id = ?", [taskId]);

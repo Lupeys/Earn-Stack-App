@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { getDb } from "../db/schema";
 import { authMiddleware } from "../middleware/auth";
+import { fraudPayoutMiddleware } from "../middleware/fraud";
 import type { AuthPayload } from "../lib/jwt";
 
 const payouts = new Hono();
 payouts.use("*", authMiddleware);
 
-payouts.post("/request", async (c) => {
+// Fraud middleware runs BEFORE the payout handler
+payouts.post("/request", fraudPayoutMiddleware, async (c) => {
   const user = c.get("user") as AuthPayload;
   const { paypal_email, amount_cad } = await c.req.json();
   if (!paypal_email || !amount_cad) {
