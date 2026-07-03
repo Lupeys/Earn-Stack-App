@@ -343,3 +343,60 @@ MIT License © 2026 Erik Contador
 ---
 
 **Built for Canadians who want real side cash — clearly earned.**
+
+### Current Implementation Status (2026-07-03)
+
+**✅ Working (Koel/Zo):** Full MVP scaffold tested and running:
+- Auth (register, login, JWT tokens) — verified end-to-end
+- Task feed, detail, submission with proof upload
+- Earnings ledger with pending/cleared/paid status
+- Payout request flow ($5 min withdrawal)
+- Admin panel (task CRUD, completion review, payout approval)
+- SQLite database with auto-creation + seed data
+
+**⏳ In Progress:**
+- Perplexity frontend/backend split is scaffolded — backend routes done, frontend pages copied
+- Design merge: Perplexity's light-first Canadian green (#4E8F7C) + Koel's dark theme support
+- PWA files from Perplexity retained for Capacitor/iOS/Android path
+
+**⏳ Pending:**
+- Phone/email verification gate
+- PayPal Payouts API integration
+- Anti-fraud middleware (velocity, device, IP checks)
+- Automated payout processing
+
+### Architecture (Implemented)
+```
+backend/src/
+├── index.ts              # Hono API (cors, logger, route mounting)
+├── routes/
+│   ├── auth.ts           # Register, login, me
+│   ├── tasks.ts          # Task feed, detail, submission
+│   ├── earnings.ts       # Ledger, balance
+│   ├── payouts.ts        # Payout request, history
+│   └── admin.ts          # Task mgmt, review, payout approval
+├── middleware/
+│   └── auth.ts           # JWT auth + admin middleware
+├── db/
+│   └── schema.ts         # SQLite schema + seed data
+└── lib/
+    └── jwt.ts            # JWT create/verify, bcrypt, user helpers
+```
+
+### Running Locally
+
+```bash
+# Install both
+cd backend && bun install && cd ..
+cd frontend && bun install && cd ..
+
+# Start backend (port 3001)
+cd backend && bun --hot src/index.ts
+
+# Start frontend (port 5173)
+cd frontend && bun run dev
+```
+
+### Deployment Note
+
+The Zo-managed deployment at `file 'earn-stack-app'` uses a single-process architecture (Hono + Vite in one Bun server). This GitHub repo preserves the cleaner frontend/backend split for code organization. See [Zo Sites docs](/?t=sites) for deployment options.

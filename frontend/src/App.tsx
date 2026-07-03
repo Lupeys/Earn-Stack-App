@@ -1,17 +1,29 @@
-import React from 'react';
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ThemeProvider } from "@/components/theme-provider";
+import Home from "@/pages/Home";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import TaskFeed from "@/pages/TaskFeed";
+import TaskComplete from "@/pages/TaskComplete";
+import Earnings from "@/pages/Earnings";
+import Payout from "@/pages/Payout";
+import Admin from "@/pages/Admin";
 
-// Placeholder App shell — pages to be built out
 export default function App() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F7F4' }}>
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <h1 style={{ fontFamily: 'Instrument Serif, serif', fontSize: '2.5rem', color: '#18302B', marginBottom: '0.5rem' }}>
-          EarnStack
-        </h1>
-        <p style={{ color: '#5F6F69', fontSize: '1rem' }}>
-          Real side cash for Canadians. Coming soon.
-        </p>
-      </div>
-    </div>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/tasks" element={<TaskFeed />} />
+          <Route path="/tasks/:id" element={<TaskComplete />} />
+          <Route path="/earnings" element={<Earnings />} />
+          <Route path="/payout" element={<Payout />} />
+          <Route path="/admin" element={<Admin />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
