@@ -1,0 +1,15 @@
+{
+  "name": "earn-stack-app",
+  "domain": "EarnStack.ca",
+  "build": {
+    "command": "bun run build",
+    "output": "frontend/dist"
+  },
+  "services": [
+    {
+      "name": "backend",
+      "command": "bun run backend/src/index.ts",
+      "port": 3001
+    }
+  ]
+}
