@@ -2,7 +2,7 @@
 
 > **Real side cash for Canadians. Verified tasks. Transparent payouts. No hype.**
 
-EarnStack is a Canada-first micro-task marketplace where verified users complete short sponsor-funded tasks and earn real cash, paid out via PayPal at a $5 minimum. No fake point ladders, no penny grind, no sketchy promises.
+EarnStack is a Canada-first micro-task marketplace where verified users complete sponsor-funded tasks and earn real cash, paid out via PayPal at a $5 minimum. The platform combines a broad wall of standard verified tasks with premium sponsored tasks, giving reliable contributors something meaningful to work toward — without turning earnings into a game. No fake point ladders, no penny grind, no sketchy promises.
 
 🌐 **Live:** [EarnStack.ca](https://EarnStack.ca)
 
@@ -14,6 +14,75 @@ EarnStack is a Canada-first micro-task marketplace where verified users complete
 - **Trust-first** — transparent payout ranges, review timelines, and eligibility rules shown upfront
 - **No hype** — modest, factual income language; no exaggerated earnings claims
 - **Fraud-protected** — device verification, velocity limits, manual payout review
+- **Progress with purpose** — users build status through reliability and approval history, not streaks or point ladders
+
+---
+
+## 📦 Task Tiers
+
+### Standard Tasks
+
+A broad wall of verified tasks that keeps the feed active and gives all verified users regular access to sponsor-funded work. These tasks should be clearly explained and consistently available so the app feels useful from day one.
+
+Each standard task card shows:
+- Payout amount or range
+- Estimated effort time
+- Deadline or expiry
+- Eligibility requirements
+- Expected review timing
+- Proof requirement
+
+### Premium Sponsored Tasks
+
+Higher-value campaigns with stricter eligibility, clearer proof standards, and stronger review controls. Premium tasks are access-earned opportunities for reliable contributors — not random bonuses or prize-style rewards.
+
+Each premium task card also shows:
+- Minimum contributor level required
+- Any sponsor-specific eligibility rules
+- Manual review requirement before earnings clear
+- Limited completion availability when applicable
+
+---
+
+## 🏅 Reliability Access Model
+
+EarnStack rewards consistency without streaks, spins, or point ladders. Status comes from approved work, a clean review history, and recent participation — giving users something real to work toward and feel proud of.
+
+### Contributor Levels
+
+| Level | How Earned | Access |
+|---|---|---|
+| **New** | Default after account verification | Standard verified tasks |
+| **Reliable** | Initial run of approved submissions with clean review history | Standard tasks + improved priority |
+| **Verified Contributor** | Sustained approved work and review record | Standard + premium sponsored tasks |
+
+### Progress Principles
+
+- Progress should feel practical and earned, not game-like
+- Use labels such as **approved tasks**, **review record**, **contributor level**, and **premium access**
+- Avoid language like streak, spin, bonus wheel, or points
+- Keep criteria visible so users always know what they are working toward
+
+### Inactivity Decay
+
+Contributor status can decay after long inactivity so premium access continues to reflect current trust and engagement.
+
+**Recovery is faster than first-time qualification.** Returning users with a prior good history regain status after a shorter run of approved tasks than they needed initially.
+
+Rule structure:
+- **New → Reliable** — full qualification path
+- **Reliable → Verified Contributor** — full qualification path
+- **Verified Contributor** after long inactivity → temporary downgrade to Reliable (not all the way back to New)
+- **Reliable** after long inactivity → temporary downgrade based on inactivity length and recent history
+- **Reinstatement path** — shorter than first-time qualification, provided the user returns with clean submissions
+
+### UX Writing Rules
+
+- ✅ "You're currently a Reliable contributor."
+- ✅ "Two more approved tasks can restore Verified Contributor access."
+- ✅ "Premium sponsored tasks require a stronger recent review record."
+- ✅ "Status can reduce after long inactivity, but returning contributors regain access faster than first-time qualification."
+- ❌ Never use: streak, grind, spin, unlock bonus, rewards ladder
 
 ---
 
@@ -25,15 +94,16 @@ earn-stack-app/
 │   ├── public/
 │   │   ├── manifest.json      # PWA manifest
 │   │   ├── sw.js              # Service worker (offline shell)
-│   │   └── icons/            # PWA icons (192x192, 512x512)
+│   │   └── icons/             # PWA icons (192x192, 512x512)
 │   ├── src/
 │   │   ├── components/        # Shared UI components
 │   │   ├── pages/             # Route-level page components
 │   │   │   ├── Landing.tsx    # Trust-first landing page
-│   │   │   ├── TaskFeed.tsx   # Available tasks
+│   │   │   ├── TaskFeed.tsx   # Available tasks (standard + premium)
 │   │   │   ├── TaskDetail.tsx # Task completion + proof submission
 │   │   │   ├── Earnings.tsx   # Ledger: pending review, available balance
 │   │   │   ├── Payout.tsx     # PayPal cashout ($5 min)
+│   │   │   ├── Status.tsx     # Contributor level, progress, inactivity notice
 │   │   │   └── Admin.tsx      # Task mgmt, payout approval, fraud flags
 │   │   ├── context/           # Auth context
 │   │   ├── utils/             # API client, constants
@@ -119,11 +189,12 @@ earn-stack-app/
 ## 📱 Core Screens
 
 1. **Landing** — trust-first hero, Canada-only messaging, waitlist/signup CTA
-2. **Task Feed** — verified tasks showing effort time, payout range, deadline
-3. **Task Detail** — completion form + proof submission
-4. **Earnings Ledger** — completed tasks, pending review balance, available balance
+2. **Task Feed** — standard and premium task filters, payout, effort, and deadline visible
+3. **Task Detail** — instructions, proof submission, eligibility, and review timing
+4. **Earnings Ledger** — pending review, approved, available, and paid states
 5. **Payout** — PayPal email entry, $5 minimum, manual review queue
-6. **Admin Panel** — task management, payout approvals, fraud flags
+6. **Contributor Status** — level, progress toward premium access, inactivity notice if applicable
+7. **Admin Panel** — task management, payout approvals, fraud flags
 
 ---
 
@@ -136,9 +207,10 @@ earn-stack-app/
 - `GET /api/auth/me` — current user (protected)
 
 ### Tasks
-- `GET /api/tasks` — available task feed (protected + verified)
+- `GET /api/tasks` — task feed with standard and premium filters (protected + verified)
 - `GET /api/tasks/:id` — task detail
 - `POST /api/tasks/:id/submit` — submit proof of completion
+- `GET /api/tasks/status` — contributor reliability, unlock level, inactivity state
 
 ### Earnings
 - `GET /api/earnings` — full ledger for current user
@@ -167,9 +239,13 @@ earn-stack-app/
   email: string,
   password_hash: string,
   province: string,
-  verified: boolean,         // unlocks task feed
+  verified: boolean,                    // unlocks task feed
   role: 'user' | 'admin',
-  device_fingerprint: string, // fraud prevention
+  device_fingerprint: string,           // fraud prevention
+  contributor_level: 'new' | 'reliable' | 'verified_contributor',
+  reliability_score: number,
+  last_approved_at?: DateTime,
+  status_decays_at?: DateTime,
   created_at: DateTime
 }
 ```
@@ -180,13 +256,15 @@ earn-stack-app/
   id: UUID,
   title: string,
   type: 'survey' | 'app_test' | 'sponsor_action',
+  tier: 'standard' | 'premium',
   description: string,
   effort_minutes: number,
-  payout_min: number,        // CAD
-  payout_max: number,        // CAD
+  payout_min: number,                   // CAD
+  payout_max: number,                   // CAD
   expires_at: DateTime,
   max_completions: number,
-  active: boolean
+  active: boolean,
+  min_contributor_level?: 'new' | 'reliable' | 'verified_contributor'
 }
 ```
 
@@ -196,9 +274,9 @@ earn-stack-app/
   id: UUID,
   user_id: UUID,
   task_id: UUID,
-  proof: string,             // URL or text
+  proof: string,                        // URL or text
   status: 'pending' | 'approved' | 'rejected',
-  payout_amount: number,     // CAD, set on approval
+  payout_amount: number,                // CAD, set on approval
   submitted_at: DateTime,
   reviewed_at: DateTime
 }
@@ -210,7 +288,7 @@ earn-stack-app/
   id: UUID,
   user_id: UUID,
   paypal_email: string,
-  amount: number,            // CAD
+  amount: number,                       // CAD
   status: 'pending' | 'sent' | 'failed',
   requested_at: DateTime,
   processed_at: DateTime
@@ -290,10 +368,11 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 - [ ] Database schema + migrations
 - [ ] Auth (register, login, verify)
 - [ ] Landing page (trust-first, waitlist)
-- [ ] Task feed (3 task types)
+- [ ] Task feed with standard and premium task tiers
 - [ ] Task submission + proof upload
 - [ ] Earnings ledger
 - [ ] Payout request flow
+- [ ] Contributor status screen with reliability-based access
 - [ ] Admin panel (review queue, payout approvals)
 - [ ] Anti-fraud middleware
 - [ ] PWA manifest + service worker
@@ -306,7 +385,8 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 ## 🗺️ Roadmap
 
 ### v1 — MVP (Now → September 2026)
-- Core task feed, earnings ledger, PayPal payouts
+- Core task feed with standard and premium task tiers
+- Reliability-based contributor access
 - Manual admin review
 - PWA on EarnStack.ca
 
@@ -314,12 +394,13 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 - Capacitor iOS + Android builds → App Store / Play Store
 - Automated payout processing
 - Sponsor self-serve dashboard
+- Reliability progress UI and contributor recovery logic
 - Referral program
 
 ### v3 — Scale
 - Task API for third-party sponsors
-- Reputation/trust score system
-- Higher-value task unlocks
+- Reliability and trust score system
+- Higher-value premium task unlocks
 - Regional expansion beyond Canada
 
 ---
@@ -364,6 +445,8 @@ MIT License © 2026 Erik Contador
 - PayPal Payouts API integration
 - Anti-fraud middleware (velocity, device, IP checks)
 - Automated payout processing
+- Contributor level + reliability score logic
+- Standard/premium task tier support
 
 ### Architecture (Implemented)
 ```
