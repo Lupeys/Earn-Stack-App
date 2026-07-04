@@ -7,7 +7,6 @@ import type { AuthPayload } from "../lib/jwt";
 const payouts = new Hono();
 payouts.use("*", authMiddleware);
 
-// Fraud middleware runs BEFORE the payout handler
 payouts.post("/request", fraudPayoutMiddleware, async (c) => {
   const user = c.get("user") as AuthPayload;
   const { paypal_email, amount_cad } = await c.req.json();
@@ -19,9 +18,15 @@ payouts.post("/request", fraudPayoutMiddleware, async (c) => {
   }
 
   const db = getDb();
-  const available = (db.query(
+  const manualBalance = (db.query(
     "SELECT COALESCE(SUM(amount_cad), 0) as total FROM earnings_ledger WHERE user_id = ? AND status = 'cleared'"
   ).get(user.userId) as { total: number }).total;
+
+  const sponsorBalance = (db.query(
+    "SELECT COALESCE(SUM(amount_cad), 0) as total FROM sponsor_earnings WHERE user_id = ? AND status = 'cleared'"
+  ).get(user.userId) as { total: number }).total;
+
+  const available = manualBalance + sponsorBalance;
 
   if (amount_cad > available) {
     return c.json({ error: "Requested amount exceeds available balance" }, 400);

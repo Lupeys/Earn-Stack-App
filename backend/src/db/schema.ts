@@ -108,6 +108,58 @@ function migrate(db: Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // ── Sponsor network integration (v0.3)
+  const addColumn = (table: string, col: string, def: string) => {
+    try { db.run(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch { /* already exists */ }
+  };
+  addColumn("tasks", "source", "TEXT NOT NULL DEFAULT 'manual'");
+  addColumn("tasks", "external_id", "TEXT DEFAULT ''");
+  addColumn("tasks", "external_network", "TEXT DEFAULT ''");
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS postback_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      network TEXT NOT NULL,
+      external_tx_id TEXT NOT NULL,
+      external_offer_id TEXT NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      payout_cad REAL NOT NULL,
+      raw_body TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'processed',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sponsor_earnings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      postback_log_id INTEGER NOT NULL REFERENCES postback_log(id),
+      amount_cad REAL NOT NULL,
+      network TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'cleared',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ── Sponsor margin config (default 30% — user gets 70%)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sponsor_config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      network TEXT NOT NULL UNIQUE,
+      user_share_pct REAL NOT NULL DEFAULT 70.0,
+      active INTEGER NOT NULL DEFAULT 1,
+      api_key TEXT NOT NULL DEFAULT '',
+      wall_code TEXT NOT NULL DEFAULT ''
+    )
+  `);
+
+  const configCount = (db.query("SELECT COUNT(*) as c FROM sponsor_config").get() as {c: number}).c;
+  if (configCount === 0) {
+    db.run("INSERT INTO sponsor_config (network, user_share_pct, active) VALUES ('theoremreach', 70.0, 0)");
+    db.run("INSERT INTO sponsor_config (network, user_share_pct, active) VALUES ('adgate', 70.0, 0)");
+  }
 }
 
 // ─────────────────────────────────────────────

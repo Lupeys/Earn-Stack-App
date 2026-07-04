@@ -22,14 +22,20 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-1">
-          <Link
-            to="/tasks"
-            className="px-3 py-1.5 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
-          >
-            Tasks
-          </Link>
           {loggedIn ? (
             <>
+              <Link
+                to="/tasks"
+                className="px-3 py-1.5 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+              >
+                Tasks
+              </Link>
+              <Link
+                to="/surveys"
+                className="px-3 py-1.5 rounded-lg text-sm text-emerald-400 hover:text-emerald-300 hover:bg-zinc-800 transition-colors"
+              >
+                Surveys
+              </Link>
               <Link
                 to="/earnings"
                 className="px-3 py-1.5 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"

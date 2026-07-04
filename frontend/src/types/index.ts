@@ -69,3 +69,14 @@ export interface AuthPayload {
   userId: number;
   email: string;
 }
+
+export interface SponsorEarning {
+  id: number;
+  user_id: number;
+  network: string;
+  external_tx_id: string;
+  external_offer_id: string;
+  amount_cad: number;
+  status: "cleared" | "reversed";
+  created_at: string;
+}

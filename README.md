@@ -425,61 +425,97 @@ MIT License © 2026 Erik Contador
 
 **Built for Canadians who want real side cash — clearly earned.**
 
-### Current Implementation Status (2026-07-03)
+### Current Implementation Status (2026-07-04)
 
-**✅ Working (Koel/Zo):** Full MVP scaffold tested and running:
-- Auth (register, login, JWT tokens) — verified end-to-end
+**Sponsor Network**
+### Current Implementation Status (2026-07-04)
+
+**✅ Working:**
+- Auth (register, login, JWT) — verified end-to-end
 - Task feed, detail, submission with proof upload
 - Earnings ledger with pending/cleared/paid status
 - Payout request flow ($5 min withdrawal)
 - Admin panel (task CRUD, completion review, payout approval)
+- Email OTP verification gate (Resend API)
+- Anti-fraud middleware (velocity, device, IP checks)
+- PayPal Payouts sandbox integration — tested ✅
 - SQLite database with auto-creation + seed data
 
-**⏳ In Progress:**
-- Perplexity frontend/backend split is scaffolded — backend routes done, frontend pages copied
-- Design merge: Perplexity's light-first Canadian green (#4E8F7C) + Koel's dark theme support
-- PWA files from Perplexity retained for Capacitor/iOS/Android path
+**🆕 Sponsor Networks (v0.3):**
+- TheoremReach postback endpoint — receives survey completions, auto-credits users ✅
+- AdGate Media postback endpoint — receives offer conversions, handles reversals ✅
+- `sponsor_config` table — per-network share %, active toggle, API keys
+- `sponsor_earnings` table — separate ledger for network earnings (auto-cleared)
+- `postback_log` table — full audit trail of all incoming postbacks
+- Earnings + Payout routes include sponsor earnings in balance calculations
+- Frontend `/surveys` page with TheoremReach survey wall embed
+- User share default: 70% (EarnStack keeps 30% margin)
 
 **⏳ Pending:**
+<<<<<<< HEAD
 - Phone/email verification gate
 - PayPal Payouts API integration
 - Anti-fraud middleware (velocity, device, IP checks)
 - Automated payout processing
 - Contributor level + reliability score logic
+- Phone/email verification gate
+- PayPal Payouts API integration
+- Anti-fraud middleware (velocity, device, IP checks)
+- Automated payout processing
+- AdGate offer feed — scheduled pull + task display
+- Sponsor self-serve dashboard (v2)
+- Contributor level + reliability score logic
 - Standard/premium task tier support
 
-### Architecture (Implemented)
-```
-backend/src/
-├── index.ts              # Hono API (cors, logger, route mounting)
+### Architecture (Updated)
+├── index.ts
 ├── routes/
 │   ├── auth.ts           # Register, login, me
 │   ├── tasks.ts          # Task feed, detail, submission
-│   ├── earnings.ts       # Ledger, balance
-│   ├── payouts.ts        # Payout request, history
+│   ├── earnings.ts       # Ledger + sponsor earnings
+│   ├── payouts.ts        # Payout request, history (includes sponsor balance)
+│   ├── postback.ts       # TheoremReach + AdGate postback handlers + config
+│   ├── verify.ts         # Email OTP verification
 │   └── admin.ts          # Task mgmt, review, payout approval
 ├── middleware/
-│   └── auth.ts           # JWT auth + admin middleware
+│   ├── auth.ts           # JWT auth + admin middleware
+│   ├── verified.ts       # Email verification gate
+│   └── fraud.ts          # Anti-fraud checks
 ├── db/
-│   └── schema.ts         # SQLite schema + seed data
+│   └── schema.ts         # SQLite schema + sponsor config + seed data
 └── lib/
     └── jwt.ts            # JWT create/verify, bcrypt, user helpers
 ```
 
-### Running Locally
+### Sponsor Postback Flow
+1. User clicks "Surveys" → TheoremReach survey wall opens (iframe/redirect)
+2. User completes survey → TheoremReach sends GET postback to `/api/postback/theoremreach`
+3. EarnStack validates (duplicate check, config active check)
+4. User's `sponsor_earnings` credited at configured share % (default 70%)
+5. Balance immediately available for withdrawal (no manual review needed)
 
+### Sponsor Config
 ```bash
-# Install both
-cd backend && bun install && cd ..
-cd frontend && bun install && cd ..
+# Enable theoremreach
+curl -X PUT http://localhost:3001/api/postback/config \
+  -H "Content-Type: application/json" \
+  -H "x-postback-secret: earnstack-postback-dev-secret" \
+  -d '{"network":"theoremreach","active":true,"user_share_pct":70}'
 
-# Start backend (port 3001)
-cd backend && bun --hot src/index.ts
-
-# Start frontend (port 5173)
-cd frontend && bun run dev
+# Enable adgate
+curl -X PUT http://localhost:3001/api/postback/config \
+  -H "Content-Type: application/json" \
+  -H "x-postback-secret: earnstack-postback-dev-secret" \
+  -d '{"network":"adgate","active":true,"user_share_pct":70}'
 ```
 
-### Deployment Note
+### Running Locally
+```bash
+cd backend && bun install && cd ..
+cd frontend && bun install && cd ..
+cd backend && bun --hot src/index.ts    # port 3001
+cd frontend && bun run dev              # port 5173
+```
+
 
 The Zo-managed deployment at `file 'earn-stack-app'` uses a single-process architecture (Hono + Vite in one Bun server). This GitHub repo preserves the cleaner frontend/backend split for code organization. See [Zo Sites docs](/?t=sites) for deployment options.

@@ -19,15 +19,35 @@ earnings.get("/", (c) => {
     ORDER BY el.created_at DESC
   `).all(user.userId);
 
+  const sponsorLedger = db.query(`
+    SELECT se.*, pl.external_offer_id as offer_title, pl.network as completion_status
+    FROM sponsor_earnings se
+    JOIN postback_log pl ON se.postback_log_id = pl.id
+    WHERE se.user_id = ?
+    ORDER BY se.created_at DESC
+  `).all(user.userId);
+
   const pending = (db.query(
     "SELECT COALESCE(SUM(amount_cad), 0) as total FROM earnings_ledger WHERE user_id = ? AND status = 'pending'"
   ).get(user.userId) as { total: number }).total;
 
-  const cleared = (db.query(
+  const manualCleared = (db.query(
     "SELECT COALESCE(SUM(amount_cad), 0) as total FROM earnings_ledger WHERE user_id = ? AND status = 'cleared'"
   ).get(user.userId) as { total: number }).total;
 
-  return c.json({ ledger, pending_balance: pending, available_balance: cleared, minimum_payout: 5 });
+  const sponsorCleared = (db.query(
+    "SELECT COALESCE(SUM(amount_cad), 0) as total FROM sponsor_earnings WHERE user_id = ? AND status = 'cleared'"
+  ).get(user.userId) as { total: number }).total;
+
+  return c.json({
+    ledger,
+    sponsor_earnings: sponsorLedger,
+    pending_balance: pending,
+    available_balance: manualCleared + sponsorCleared,
+    manual_balance: manualCleared,
+    sponsor_balance: sponsorCleared,
+    minimum_payout: 5,
+  });
 });
 
 earnings.get("/summary", (c) => {
@@ -38,8 +58,12 @@ earnings.get("/summary", (c) => {
     "SELECT COALESCE(SUM(amount_cad), 0) as total FROM earnings_ledger WHERE user_id = ? AND status = 'pending'"
   ).get(user.userId) as { total: number }).total;
 
-  const cleared = (db.query(
+  const manualCleared = (db.query(
     "SELECT COALESCE(SUM(amount_cad), 0) as total FROM earnings_ledger WHERE user_id = ? AND status = 'cleared'"
+  ).get(user.userId) as { total: number }).total;
+
+  const sponsorCleared = (db.query(
+    "SELECT COALESCE(SUM(amount_cad), 0) as total FROM sponsor_earnings WHERE user_id = ? AND status = 'cleared'"
   ).get(user.userId) as { total: number }).total;
 
   const paid = (db.query(
@@ -50,7 +74,20 @@ earnings.get("/summary", (c) => {
     "SELECT COUNT(*) as c FROM task_completions WHERE user_id = ? AND status = 'approved'"
   ).get(user.userId) as { c: number }).c;
 
-  return c.json({ pending_balance: pending, available_balance: cleared, lifetime_earned: paid, completed_tasks: completedTasks, minimum_payout: 5 });
+  const sponsorTaskCount = (db.query(
+    "SELECT COUNT(*) as c FROM sponsor_earnings WHERE user_id = ?"
+  ).get(user.userId) as { c: number }).c;
+
+  return c.json({
+    pending_balance: pending,
+    available_balance: manualCleared + sponsorCleared,
+    manual_balance: manualCleared,
+    sponsor_balance: sponsorCleared,
+    lifetime_earned: paid,
+    completed_tasks: completedTasks,
+    sponsor_tasks: sponsorTaskCount,
+    minimum_payout: 5,
+  });
 });
 
 export default earnings;

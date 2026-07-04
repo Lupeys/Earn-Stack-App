@@ -9,6 +9,7 @@ import TaskComplete from "@/pages/TaskComplete";
 import Earnings from "@/pages/Earnings";
 import Payout from "@/pages/Payout";
 import Admin from "@/pages/Admin";
+import Surveys from "@/pages/Surveys";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/earnings" element={<Earnings />} />
           <Route path="/payout" element={<Payout />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/surveys" element={<Surveys />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

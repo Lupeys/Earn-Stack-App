@@ -8,6 +8,7 @@ import earnings from "./routes/earnings";
 import payouts from "./routes/payouts";
 import admin from "./routes/admin";
 import verify from "./routes/verify";
+import postback from "./routes/postback";
 
 const app = new Hono();
 
@@ -23,6 +24,7 @@ app.route("/api/earnings", earnings);
 app.route("/api/payouts", payouts);
 app.route("/api/admin", admin);
 app.route("/api/verify", verify);
+app.route("/api/postback", postback);
 
 const db = getDb();
 seed(db);
