@@ -25,6 +25,15 @@ const navItems = [
     ),
   },
   {
+    to: "/rewards",
+    label: "Rewards",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+      </svg>
+    ),
+  },
+  {
     to: "/earnings",
     label: "Earnings",
     icon: (
@@ -62,7 +71,7 @@ export default function BottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Main navigation"
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {navItems.map((item) => {
           const active = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
           return (
