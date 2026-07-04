@@ -376,8 +376,8 @@ Offer wall networks (TheoremReach, AdGate) require a **virtual currency (VC)** c
 | **VC Name** | Credits |
 | **VC Value** | 100 Credits per $1 CAD paid by sponsor |
 | **VC Type** | Non-transferable in-app credit |
-| **Conversion** | 100 Credits = $0.01 CAD after EarnStack share |
-| **Minimum cashout** | 50,000 Credits ($5 CAD equivalent) |
+| **Conversion** | 100 Credits = $1 CAD |
+| **Minimum cashout** | 500 Credits ($5 CAD equivalent) |
 | **Payout method** | PayPal in CAD |
 | **Payout review** | Manual review required before transfer |
 
@@ -388,19 +388,19 @@ Offer wall networks (TheoremReach, AdGate) require a **virtual currency (VC)** c
 3. EarnStack retains its margin — the user share (default 70%) is reflected in the Credits balance displayed.
 4. Credits appear as **Pending** during the review hold period.
 5. After fraud checks and review, Credits move to **Available**.
-6. Once the balance reaches 50,000 Credits ($5 CAD), the user can request a PayPal cashout.
+6. Once the balance reaches 500 Credits ($5 CAD), the user can request a PayPal cashout.
 
 > Standard offer wall Credits clear automatically after postback validation. Premium sponsored task Credits require manual admin review before moving to Available.
 
 ### UX Display Rules
 
-- Always show both Credits **and** the CAD equivalent side by side: `12,500 Credits ($1.25 CAD)`
+- Always show both Credits **and** the CAD equivalent side by side: `125 Credits ($1.25 CAD)`
 - Never show Credits as a standalone number without the CAD value nearby
 - Use these states throughout the Earnings Ledger and Payout flow:
   - **Pending review** — Credits held, awaiting validation
   - **Available** — Credits cleared, ready to cash out
   - **Cashed out** — Credits redeemed, PayPal transfer sent
-- Minimum cashout label: "Cash out when you reach $5 CAD (50,000 Credits)"
+- Minimum cashout label: "Cash out when you reach $5 CAD (500 Credits)"
 - Do not use language like "earn coins", "collect rewards", or "spend credits" — Credits are compensation for completed work, not a game currency
 
 ### Why Credits Exist
