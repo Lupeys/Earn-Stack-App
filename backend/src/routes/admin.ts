@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { getDb } from "../db/schema";
 import { authMiddleware, adminMiddleware } from "../middleware/auth";
+import { sendPayPalPayout } from "../lib/paypal";
 
 const admin = new Hono();
 admin.use("*", authMiddleware);
@@ -67,29 +68,62 @@ admin.get("/payouts", (c) => {
 
 admin.put("/payouts/:id", async (c) => {
   const id = c.req.param("id");
-  const { status, notes } = await c.req.json();
-  if (!status || !["approved", "rejected", "pending"].includes(status)) {
-    return c.json({ error: "Invalid status" }, 400);
+  const { action, notes } = await c.req.json();
+
+  if (!action || !["approve", "reject"].includes(action)) {
+    return c.json({ error: "Action must be 'approve' or 'reject'" }, 400);
   }
 
   const db = getDb();
-  const req = db.query("SELECT * FROM payout_requests WHERE id = ?").get(id) as any;
-  if (!req) return c.json({ error: "Payout request not found" }, 404);
+  const payout = db.query("SELECT * FROM payout_requests WHERE id = ?").get(id) as {
+    id: number;
+    user_id: number;
+    paypal_email: string;
+    amount_cad: number;
+    status: string;
+  } | null;
 
-  const newStatus = status === "approved" ? "completed" : "rejected";
-  db.run(
-    "UPDATE payout_requests SET status = ?, reviewer_notes = ?, processed_at = datetime('now') WHERE id = ?",
-    [newStatus, notes || null, id]
-  );
-
-  if (status === "approved") {
-    db.run(
-      "UPDATE earnings_ledger SET status = 'paid', released_at = datetime('now') WHERE user_id = ? AND status = 'cleared'",
-      [req.user_id]
-    );
+  if (!payout) return c.json({ error: "Payout request not found" }, 404);
+  if (payout.status !== "pending") {
+    return c.json({ error: "Payout is not in pending state" }, 400);
   }
 
-  return c.json({ success: true });
+  if (action === "reject") {
+    db.run(
+      "UPDATE payout_requests SET status = 'rejected', reviewer_notes = ?, processed_at = datetime('now') WHERE id = ?",
+      [notes || null, id]
+    );
+    return c.json({ success: true });
+  }
+
+  // action === 'approve' — call PayPal
+  const result = await sendPayPalPayout(
+    payout.paypal_email,
+    payout.amount_cad,
+    payout.id
+  );
+
+  if (!result.success) {
+    // Mark failed — do NOT deduct balance so admin can retry
+    db.run(
+      "UPDATE payout_requests SET status = 'failed', reviewer_notes = ?, processed_at = datetime('now') WHERE id = ?",
+      [`PayPal error: ${result.error}`, id]
+    );
+    return c.json({ error: `PayPal transfer failed: ${result.error}` }, 502);
+  }
+
+  // Success — mark sent, record batch ID, flip earnings to paid
+  db.run(
+    "UPDATE payout_requests SET status = 'sent', reviewer_notes = ?, processed_at = datetime('now') WHERE id = ?",
+    [`PayPal batch: ${result.batch_id}`, id]
+  );
+
+  db.run(
+    "UPDATE earnings_ledger SET status = 'paid', released_at = datetime('now') WHERE user_id = ? AND status = 'cleared'",
+    [payout.user_id]
+  );
+
+  return c.json({ success: true, batch_id: result.batch_id });
 });
 
 admin.get("/tasks", (c) => {
@@ -123,6 +157,15 @@ admin.put("/tasks/:id", async (c) => {
     "UPDATE tasks SET title = COALESCE(?, title), description = COALESCE(?, description), task_type = COALESCE(?, task_type), effort_minutes = COALESCE(?, effort_minutes), payout_cad = COALESCE(?, payout_cad), deadline = COALESCE(?, deadline), max_completions = COALESCE(?, max_completions), status = COALESCE(?, status) WHERE id = ?",
     [title, description, task_type, effort_minutes, payout_cad, deadline, max_completions, status, id]
   );
+  return c.json({ success: true });
+});
+
+admin.delete("/tasks/:id", (c) => {
+  const id = c.req.param("id");
+  const db = getDb();
+  const existing = db.query("SELECT * FROM tasks WHERE id = ?").get(id);
+  if (!existing) return c.json({ error: "Task not found" }, 404);
+  db.run("DELETE FROM tasks WHERE id = ?", [id]);
   return c.json({ success: true });
 });
 
