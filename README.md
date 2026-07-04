@@ -455,6 +455,7 @@ MIT License © 2026 Erik Contador
 - Standard/premium task tier support
 
 ### Architecture (Updated)
+```
 ├── index.ts
 ├── routes/
 │   ├── auth.ts           # Register, login, me
