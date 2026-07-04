@@ -113,9 +113,26 @@ function migrate(db: Database) {
   const addColumn = (table: string, col: string, def: string) => {
     try { db.run(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch { /* already exists */ }
   };
+
   addColumn("tasks", "source", "TEXT NOT NULL DEFAULT 'manual'");
   addColumn("tasks", "external_id", "TEXT DEFAULT ''");
   addColumn("tasks", "external_network", "TEXT DEFAULT ''");
+
+  // ── Task tiers + contributor level gating (v0.4)
+  // tier: 'standard' (offer wall, open to all) | 'premium' (curated sponsor, level-gated)
+  // min_contributor_level: null = open, 'reliable', 'verified_contributor'
+  addColumn("tasks", "tier", "TEXT NOT NULL DEFAULT 'standard'");
+  addColumn("tasks", "min_contributor_level", "TEXT DEFAULT NULL");
+
+  // ── Contributor level columns on users (v0.4)
+  // contributor_level: 'new' | 'reliable' | 'verified_contributor'
+  // reliability_score: integer count of lifetime approved completions (never decrements)
+  // last_approved_at: DateTime of most recent approved completion (drives decay check)
+  // status_decays_at: DateTime when level will decay if no new approved work
+  addColumn("users", "contributor_level", "TEXT NOT NULL DEFAULT 'new'");
+  addColumn("users", "reliability_score", "INTEGER NOT NULL DEFAULT 0");
+  addColumn("users", "last_approved_at", "TEXT DEFAULT NULL");
+  addColumn("users", "status_decays_at", "TEXT DEFAULT NULL");
 
   db.run(`
     CREATE TABLE IF NOT EXISTS postback_log (
@@ -143,7 +160,7 @@ function migrate(db: Database) {
     )
   `);
 
-  // ── Sponsor margin config (default 30% — user gets 70%)
+  // ── Sponsor margin config (default 30% platform — user gets 70%)
   db.run(`
     CREATE TABLE IF NOT EXISTS sponsor_config (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,6 +177,24 @@ function migrate(db: Database) {
     db.run("INSERT INTO sponsor_config (network, user_share_pct, active) VALUES ('theoremreach', 70.0, 0)");
     db.run("INSERT INTO sponsor_config (network, user_share_pct, active) VALUES ('adgate', 70.0, 0)");
   }
+
+  // ── AdGate offer feed cache (v0.4)
+  // Stores normalised offers pulled from AdGate's offer API.
+  // Synced on a schedule; upserted into tasks table as tier='standard'.
+  db.run(`
+    CREATE TABLE IF NOT EXISTS adgate_offer_cache (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      external_offer_id TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      payout_cad REAL NOT NULL,
+      effort_minutes INTEGER NOT NULL DEFAULT 5,
+      offer_url TEXT NOT NULL DEFAULT '',
+      requirements TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1,
+      last_synced_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
 }
 
 // ─────────────────────────────────────────────
@@ -181,9 +216,9 @@ export async function seed(db: Database) {
   if (workerCount === 0) {
     const workerHash = await Bun.password.hash("worker123", { algorithm: "bcrypt", cost: 12 });
     const workers = [
-      ["sarah.chen@gmail.com",    workerHash, "Sarah Chen",    "user", 1],
+      ["sarah.chen@gmail.com",      workerHash, "Sarah Chen",    "user", 1],
       ["marcus.obrien@outlook.com", workerHash, "Marcus O'Brien", "user", 1],
-      ["priya.nair@hotmail.com",  workerHash, "Priya Nair",    "user", 0],
+      ["priya.nair@hotmail.com",    workerHash, "Priya Nair",    "user", 0],
     ];
     const wStmt = db.prepare(
       "INSERT INTO users (email, password_hash, display_name, role, verified) VALUES (?, ?, ?, ?, ?)"
@@ -191,31 +226,30 @@ export async function seed(db: Database) {
     for (const w of workers) wStmt.run(...w);
   }
 
-  // ── 3. Tasks (12 tasks across all task_types)
+  // ── 3. Tasks (12 tasks — mix of standard and premium tiers)
   const taskCount = (db.query("SELECT COUNT(*) as c FROM tasks").get() as { c: number }).c;
   if (taskCount === 0) {
-    // [title, description, task_type, effort_minutes, payout_cad, max_completions, status]
-    const taskRows = [
-      // survey
-      ["Canadian Grocery Habits Survey", "Answer 20 questions about your weekly grocery shopping. Anonymous, takes ~10 minutes.", "survey", 10, 2.00, 50, "active"],
-      ["Tech Adoption in Canada – 2026", "15 multiple-choice questions on how Canadians use smartphones and apps. Fully anonymous.", "survey", 8, 1.75, 100, "active"],
-      ["Home Internet Satisfaction Survey", "Rate your ISP and broadband experience. 12 questions.", "survey", 6, 1.50, 75, "active"],
-      // app_test
-      ["Test a Canadian Weather App", "Install our iOS/Android weather app, complete the 5-step onboarding, and report any bugs via the in-app form.", "app_test", 15, 3.50, 10, "active"],
-      ["E-commerce Usability Test", "Try to find 3 specific products on our Canadian retailer site. Record your screen if possible.", "app_test", 12, 3.00, 20, "active"],
-      ["Accessibility Audit – Banking App", "Navigate 4 core screens in our mobile banking prototype using only screen-reader mode. Report friction points.", "app_test", 20, 5.00, 8, "active"],
-      // promo_action
-      ["Watch & Review a Product Demo", "Watch a 2-minute promo for a Canadian fintech app and write 3 sentences of honest feedback.", "promo_action", 5, 1.25, 30, "active"],
-      ["Follow & Engage on Instagram", "Follow @EarnStackCA, like 3 posts, and leave a genuine comment. Screenshot required as proof.", "promo_action", 4, 1.00, 50, "active"],
-      // data_entry
-      ["Menu Data Entry – Local Restaurants", "Transcribe menu items and prices from 5 provided photos into a shared spreadsheet.", "data_entry", 25, 4.00, 15, "active"],
-      ["Receipt Digitization", "Photograph and transcribe 10 grocery receipts into a structured CSV template. Provided by sponsor.", "data_entry", 30, 4.50, 10, "active"],
-      // other
-      ["Write a Product Review", "Purchase or use a free trial of our SaaS tool and write an honest 150-word review for a Canadian tech forum.", "other", 20, 6.00, 5, "active"],
-      ["Draft Task — Coming Soon", "This task is being prepared by our team. Check back soon.", "other", 10, 2.00, 0, "draft"],
+    // [title, description, task_type, effort_minutes, payout_cad, max_completions, status, tier, min_contributor_level]
+    const taskRows: [string, string, string, number, number, number, string, string, string | null][] = [
+      // standard — open to all verified users
+      ["Canadian Grocery Habits Survey", "Answer 20 questions about your weekly grocery shopping. Anonymous, takes ~10 minutes.", "survey", 10, 2.00, 50, "active", "standard", null],
+      ["Tech Adoption in Canada – 2026", "15 multiple-choice questions on how Canadians use smartphones and apps. Fully anonymous.", "survey", 8, 1.75, 100, "active", "standard", null],
+      ["Home Internet Satisfaction Survey", "Rate your ISP and broadband experience. 12 questions.", "survey", 6, 1.50, 75, "active", "standard", null],
+      ["Watch & Review a Product Demo", "Watch a 2-minute promo for a Canadian fintech app and write 3 sentences of honest feedback.", "promo_action", 5, 1.25, 30, "active", "standard", null],
+      ["Follow & Engage on Instagram", "Follow @EarnStackCA, like 3 posts, and leave a genuine comment. Screenshot required as proof.", "promo_action", 4, 1.00, 50, "active", "standard", null],
+      ["Menu Data Entry – Local Restaurants", "Transcribe menu items and prices from 5 provided photos into a shared spreadsheet.", "data_entry", 25, 4.00, 15, "active", "standard", null],
+      // premium — requires Reliable contributor level
+      ["Test a Canadian Weather App", "Install our iOS/Android weather app, complete the 5-step onboarding, and report any bugs via the in-app form.", "app_test", 15, 3.50, 10, "active", "premium", "reliable"],
+      ["E-commerce Usability Test", "Try to find 3 specific products on our Canadian retailer site. Record your screen if possible.", "app_test", 12, 3.00, 20, "active", "premium", "reliable"],
+      // premium — requires Verified Contributor
+      ["Accessibility Audit – Banking App", "Navigate 4 core screens in our mobile banking prototype using only screen-reader mode. Report friction points.", "app_test", 20, 5.00, 8, "active", "premium", "verified_contributor"],
+      ["Receipt Digitization", "Photograph and transcribe 10 grocery receipts into a structured CSV template. Provided by sponsor.", "data_entry", 30, 4.50, 10, "active", "premium", "verified_contributor"],
+      ["Write a Product Review", "Purchase or use a free trial of our SaaS tool and write an honest 150-word review for a Canadian tech forum.", "other", 20, 6.00, 5, "active", "premium", "verified_contributor"],
+      // draft
+      ["Draft Task — Coming Soon", "This task is being prepared by our team. Check back soon.", "other", 10, 2.00, 0, "draft", "standard", null],
     ];
     const tStmt = db.prepare(
-      "INSERT INTO tasks (sponsor_id, title, description, task_type, effort_minutes, payout_cad, max_completions, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO tasks (sponsor_id, title, description, task_type, effort_minutes, payout_cad, max_completions, status, tier, min_contributor_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     for (const t of taskRows) tStmt.run(1, ...t);
   }
@@ -223,25 +257,23 @@ export async function seed(db: Database) {
   // ── 4. Sample completions + earnings — only if completions table is empty
   const compCount = (db.query("SELECT COUNT(*) as c FROM task_completions").get() as { c: number }).c;
   if (compCount === 0) {
-    // Get the seeded user IDs in order
     const userRows = db.query(
       "SELECT id FROM users WHERE role = 'user' ORDER BY id ASC LIMIT 3"
     ).all() as { id: number }[];
     const taskRows = db.query(
-      "SELECT id, payout_cad FROM tasks WHERE status = 'active' ORDER BY id ASC LIMIT 6"
+      "SELECT id, payout_cad FROM tasks WHERE status = 'active' AND tier = 'standard' ORDER BY id ASC LIMIT 6"
     ).all() as { id: number; payout_cad: number }[];
 
     if (userRows.length >= 2 && taskRows.length >= 5) {
       const [sarah, marcus, priya] = [userRows[0].id, userRows[1].id, userRows[2]?.id ?? userRows[1].id];
 
-      // [task_id, user_id, proof_data, status]
-      const completions = [
+      const completions: [number, number, string, string][] = [
         [taskRows[0].id, sarah,  "Survey completed via link, confirmation code: CA-5821", "approved"],
         [taskRows[1].id, sarah,  "Survey submitted at 14:32 PST, confirmation: TCA-9104", "approved"],
-        [taskRows[2].id, marcus, "Completed survey, screenshot attached in notes",         "approved"],
-        [taskRows[3].id, marcus, "App tested on iPhone 14 iOS 18.2 — found 2 bugs, reported via form", "pending_review"],
-        [taskRows[4].id, priya,  "Tested on Samsung Galaxy S24, all 3 products found successfully", "pending_review"],
-        [taskRows[0].id, priya,  "Survey completed, code: CA-7743",                         "rejected"],
+        [taskRows[2].id, marcus, "Completed survey, screenshot attached in notes",        "approved"],
+        [taskRows[3].id, marcus, "Watched demo, feedback: Clean UI, pricing unclear, good onboarding flow", "pending_review"],
+        [taskRows[4].id, priya,  "Followed account, liked 3 posts, commented on launch post", "pending_review"],
+        [taskRows[0].id, priya,  "Survey completed, code: CA-7743",                        "rejected"],
       ];
 
       const cStmt = db.prepare(
@@ -262,13 +294,27 @@ export async function seed(db: Database) {
       const eStmt = db.prepare(
         "INSERT INTO earnings_ledger (user_id, task_completion_id, amount_cad, status) VALUES (?, ?, ?, ?)"
       );
-      for (const a of approved) {
-        // Sarah's first earning is 'cleared' (ready to withdraw), second is 'pending'
-        const status = a.user_id === sarah ? (approved.indexOf(a) === 0 ? "cleared" : "pending") : "cleared";
+      for (const [i, a] of approved.entries()) {
+        const status = a.user_id === sarah ? (i === 0 ? "cleared" : "pending") : "cleared";
         eStmt.run(a.user_id, a.id, a.payout_cad, status);
       }
 
-      // ── 6. One pending payout request from Sarah (she has cleared balance)
+      // ── 6. Update reliability scores for seeded approved completions
+      const approvedCounts = db.query(
+        "SELECT user_id, COUNT(*) as cnt FROM task_completions WHERE status = 'approved' GROUP BY user_id"
+      ).all() as { user_id: number; cnt: number }[];
+      for (const row of approvedCounts) {
+        db.run(
+          "UPDATE users SET reliability_score = ?, last_approved_at = datetime('now') WHERE id = ?",
+          [row.cnt, row.user_id]
+        );
+      }
+      // Sarah and Marcus have 2 approved each — promote to 'reliable'
+      db.run(
+        "UPDATE users SET contributor_level = 'reliable' WHERE role = 'user' AND reliability_score >= 2"
+      );
+
+      // ── 7. One pending payout request from Sarah
       const sarahCleared = (db.query(
         "SELECT COALESCE(SUM(amount_cad), 0) as total FROM earnings_ledger WHERE user_id = ? AND status = 'cleared'"
       ).get(sarah) as { total: number }).total;
@@ -280,7 +326,7 @@ export async function seed(db: Database) {
         );
       }
 
-      // ── 7. One sample fraud flag (for Priya's rejected submission)
+      // ── 8. One sample fraud flag for Priya's rejected submission
       db.run(
         "INSERT INTO fraud_flags (user_id, flag_type, severity, details) VALUES (?, ?, ?, ?)",
         [priya, "DUPLICATE_PROOF", "low", "Proof code CA-7743 was similar to another submission. Auto-flagged for review."]
