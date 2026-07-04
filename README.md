@@ -20,27 +20,37 @@ EarnStack is a Canada-first micro-task marketplace where verified users complete
 
 ## 📦 Task Tiers
 
-### Standard Tasks
+EarnStack uses two distinct task tiers. Together they give the feed consistent volume while rewarding reliable contributors with access to higher-value work.
 
-A broad wall of verified tasks that keeps the feed active and gives all verified users regular access to sponsor-funded work. These tasks should be clearly explained and consistently available so the app feels useful from day one.
+### Standard Tasks — Offer Wall
+
+Standard tasks are powered by integrated offer wall networks (TheoremReach, AdGate Media). These are broadly available to all verified users and keep the feed active from day one without manual task entry.
+
+- Survey completions and offer conversions are credited automatically via postback
+- Earnings are posted at the configured user share (default 70%)
+- No manual review required — postback validation handles duplicate and reversal checks
+- Available to all verified users regardless of contributor level
 
 Each standard task card shows:
-- Payout amount or range
+- Payout amount or estimated range
 - Estimated effort time
-- Deadline or expiry
+- Task type (survey, offer, app action)
 - Eligibility requirements
-- Expected review timing
-- Proof requirement
 
-### Premium Sponsored Tasks
+### Premium Sponsored Tasks — Curated Campaigns
 
-Higher-value campaigns with stricter eligibility, clearer proof standards, and stronger review controls. Premium tasks are access-earned opportunities for reliable contributors — not random bonuses or prize-style rewards.
+Premium tasks are higher-value curated campaigns sourced directly from sponsors. These have stricter eligibility, clear proof requirements, and manual review before earnings clear. Access is earned through the Reliability Access Model — not available to all users by default.
+
+- Created and managed via the admin panel or future sponsor self-serve dashboard
+- Manual proof review before payout is released
+- Higher payout range than standard offer wall tasks
+- Locked behind minimum contributor level (Reliable or Verified Contributor)
 
 Each premium task card also shows:
 - Minimum contributor level required
-- Any sponsor-specific eligibility rules
-- Manual review requirement before earnings clear
-- Limited completion availability when applicable
+- Sponsor-specific eligibility rules
+- Manual review notice
+- Limited availability when applicable
 
 ---
 
@@ -52,8 +62,8 @@ EarnStack rewards consistency without streaks, spins, or point ladders. Status c
 
 | Level | How Earned | Access |
 |---|---|---|
-| **New** | Default after account verification | Standard verified tasks |
-| **Reliable** | Initial run of approved submissions with clean review history | Standard tasks + improved priority |
+| **New** | Default after account verification | Standard offer wall tasks |
+| **Reliable** | Initial run of approved submissions with clean review history | Standard tasks + improved feed priority |
 | **Verified Contributor** | Sustained approved work and review record | Standard + premium sponsored tasks |
 
 ### Progress Principles
@@ -103,6 +113,7 @@ earn-stack-app/
 │   │   │   ├── TaskDetail.tsx # Task completion + proof submission
 │   │   │   ├── Earnings.tsx   # Ledger: pending review, available balance
 │   │   │   ├── Payout.tsx     # PayPal cashout ($5 min)
+│   │   │   ├── Surveys.tsx    # TheoremReach survey wall embed
 │   │   │   ├── Status.tsx     # Contributor level, progress, inactivity notice
 │   │   │   └── Admin.tsx      # Task mgmt, payout approval, fraud flags
 │   │   ├── context/           # Auth context
@@ -120,11 +131,14 @@ earn-stack-app/
 │   │   ├── routes/
 │   │   │   ├── auth.ts        # Register, login, verify
 │   │   │   ├── tasks.ts       # Task feed, submission, proof upload
-│   │   │   ├── earnings.ts    # Ledger, balance
-│   │   │   ├── payouts.ts     # Payout requests, PayPal integration
+│   │   │   ├── earnings.ts    # Ledger + sponsor earnings
+│   │   │   ├── payouts.ts     # Payout requests (includes sponsor balance)
+│   │   │   ├── postback.ts    # TheoremReach + AdGate postback handlers
+│   │   │   ├── verify.ts      # Email OTP verification
 │   │   │   └── admin.ts       # Admin-only: approve, flag, manage
 │   │   ├── middleware/
 │   │   │   ├── auth.ts        # JWT middleware
+│   │   │   ├── verified.ts    # Email verification gate
 │   │   │   └── fraud.ts       # Velocity limits, device checks
 │   │   ├── db/
 │   │   │   ├── schema.ts      # Database schema
@@ -151,6 +165,7 @@ earn-stack-app/
 | Auth | JWT (email/password + phone verification gate) |
 | Hosting | Zo Sites → EarnStack.ca |
 | Payouts | PayPal Payouts API |
+| Offer Walls | TheoremReach, AdGate Media (postback integration) |
 | PWA | Web App Manifest + Service Worker |
 
 ---
@@ -190,11 +205,12 @@ earn-stack-app/
 
 1. **Landing** — trust-first hero, Canada-only messaging, waitlist/signup CTA
 2. **Task Feed** — standard and premium task filters, payout, effort, and deadline visible
-3. **Task Detail** — instructions, proof submission, eligibility, and review timing
-4. **Earnings Ledger** — pending review, approved, available, and paid states
-5. **Payout** — PayPal email entry, $5 minimum, manual review queue
-6. **Contributor Status** — level, progress toward premium access, inactivity notice if applicable
-7. **Admin Panel** — task management, payout approvals, fraud flags
+3. **Surveys** — TheoremReach offer wall embed (standard task source)
+4. **Task Detail** — instructions, proof submission, eligibility, and review timing
+5. **Earnings Ledger** — pending review, approved, available, and paid states
+6. **Payout** — PayPal email entry, $5 minimum, manual review queue
+7. **Contributor Status** — level, progress toward premium access, inactivity notice if applicable
+8. **Admin Panel** — task management, payout approvals, fraud flags
 
 ---
 
@@ -203,7 +219,7 @@ earn-stack-app/
 ### Auth
 - `POST /api/auth/register` — register with email + password
 - `POST /api/auth/login` — login, returns JWT
-- `POST /api/auth/verify` — phone/email verification to unlock tasks
+- `POST /api/auth/verify` — email OTP verification to unlock tasks
 - `GET /api/auth/me` — current user (protected)
 
 ### Tasks
@@ -213,12 +229,17 @@ earn-stack-app/
 - `GET /api/tasks/status` — contributor reliability, unlock level, inactivity state
 
 ### Earnings
-- `GET /api/earnings` — full ledger for current user
+- `GET /api/earnings` — full ledger (manual + sponsor earnings combined)
 - `GET /api/earnings/summary` — available balance, pending, lifetime total
 
 ### Payouts
 - `POST /api/payouts/request` — request PayPal payout ($5 min)
 - `GET /api/payouts` — payout history
+
+### Postbacks (Sponsor Networks)
+- `GET /api/postback/theoremreach` — TheoremReach survey completion postback
+- `GET /api/postback/adgate` — AdGate offer conversion + reversal postback
+- `PUT /api/postback/config` — update network share % and active toggle (admin)
 
 ### Admin (protected, admin role)
 - `GET /api/admin/submissions` — review queue
@@ -295,19 +316,68 @@ earn-stack-app/
 }
 ```
 
+### Sponsor Config
+```ts
+{
+  network: 'theoremreach' | 'adgate',
+  active: boolean,
+  user_share_pct: number,               // default 70
+  api_key?: string
+}
+```
+
+### Sponsor Earnings
+```ts
+{
+  id: UUID,
+  user_id: UUID,
+  network: string,
+  transaction_id: string,               // dedup key
+  amount: number,                       // CAD after share %
+  status: 'cleared' | 'reversed',
+  created_at: DateTime
+}
+```
+
+### Postback Log
+```ts
+{
+  id: UUID,
+  network: string,
+  raw_payload: string,                  // full audit trail
+  processed: boolean,
+  created_at: DateTime
+}
+```
+
+---
+
+## 🔄 Sponsor Postback Flow
+
+1. User opens the Surveys page → TheoremReach survey wall loads
+2. User completes a survey → TheoremReach sends GET postback to `/api/postback/theoremreach`
+3. EarnStack validates (duplicate check, network active check)
+4. User's `sponsor_earnings` credited at configured share % (default 70%)
+5. Balance immediately available for withdrawal — no manual review required
+6. Same flow applies for AdGate offer completions and handles reversals automatically
+
+> Standard offer wall earnings clear automatically. Premium sponsored task earnings go through manual review before release.
+
 ---
 
 ## 🔐 Security & Anti-Fraud
 
 - ✅ Passwords hashed with bcrypt
 - ✅ JWT authentication with expiry
-- ✅ Phone/email verification gate before task access
+- ✅ Email OTP verification gate before task access
 - ✅ Device fingerprint stored on registration
 - ✅ Velocity limits — max submissions per user per day
 - ✅ VPN/proxy detection (flag for manual review)
 - ✅ Manual payout review before every PayPal transfer
 - ✅ Duplicate account detection by device + email
 - ✅ Delayed payouts — balance only clears after review window
+- ✅ Postback dedup — transaction ID prevents duplicate credits
+- ✅ Postback audit log — full trail of all incoming network callbacks
 
 ---
 
@@ -370,13 +440,15 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 - [ ] Landing page (trust-first, waitlist)
 - [ ] Task feed with standard and premium task tiers
 - [ ] Task submission + proof upload
-- [ ] Earnings ledger
+- [ ] Earnings ledger (manual + sponsor earnings)
 - [ ] Payout request flow
 - [ ] Contributor status screen with reliability-based access
 - [ ] Admin panel (review queue, payout approvals)
 - [ ] Anti-fraud middleware
 - [ ] PWA manifest + service worker
 - [ ] Deploy to Zo Sites → EarnStack.ca
+- [ ] TheoremReach postback integration
+- [ ] AdGate postback integration
 - [ ] PayPal Payouts API integration
 - [ ] Beta user testing (Canadian users only)
 
@@ -385,22 +457,26 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 ## 🗺️ Roadmap
 
 ### v1 — MVP (Now → September 2026)
-- Core task feed with standard and premium task tiers
-- Reliability-based contributor access
-- Manual admin review
+- Core task feed with standard (offer wall) and premium (curated sponsor) task tiers
+- TheoremReach + AdGate postback integration ✅
+- Reliability-based contributor access model
+- Inactivity decay with faster reinstatement path
+- Manual admin review for premium tasks
+- PayPal Payouts
 - PWA on EarnStack.ca
 
 ### v2 — Growth
 - Capacitor iOS + Android builds → App Store / Play Store
 - Automated payout processing
-- Sponsor self-serve dashboard
+- Sponsor self-serve dashboard (premium task creation + budget funding)
 - Reliability progress UI and contributor recovery logic
+- AdGate offer feed — scheduled pull + task display
 - Referral program
 
 ### v3 — Scale
 - Task API for third-party sponsors
-- Reliability and trust score system
 - Higher-value premium task unlocks
+- Additional offer wall network integrations
 - Regional expansion beyond Canada
 
 ---
@@ -425,6 +501,8 @@ MIT License © 2026 Erik Contador
 
 **Built for Canadians who want real side cash — clearly earned.**
 
+---
+
 ### Current Implementation Status (2026-07-04)
 
 **✅ Working:**
@@ -435,27 +513,24 @@ MIT License © 2026 Erik Contador
 - Admin panel (task CRUD, completion review, payout approval)
 - Email OTP verification gate (Resend API)
 - Anti-fraud middleware (velocity, device, IP checks)
-- PayPal Payouts sandbox integration — tested ✅
+- PayPal Payouts sandbox integration ✅
 - SQLite database with auto-creation + seed data
-
-**🆕 Sponsor Networks (v0.3):**
-- TheoremReach postback endpoint — receives survey completions, auto-credits users ✅
-- AdGate Media postback endpoint — receives offer conversions, handles reversals ✅
+- TheoremReach postback — survey completions auto-credit users ✅
+- AdGate postback — offer conversions + reversals handled ✅
 - `sponsor_config` table — per-network share %, active toggle, API keys
-- `sponsor_earnings` table — separate ledger for network earnings (auto-cleared)
+- `sponsor_earnings` table — separate ledger for offer wall earnings (auto-cleared)
 - `postback_log` table — full audit trail of all incoming postbacks
-- Earnings + Payout routes include sponsor earnings in balance calculations
 - Frontend `/surveys` page with TheoremReach survey wall embed
-- User share default: 70% (EarnStack keeps 30% margin)
 
 **⏳ Pending:**
 - AdGate offer feed — scheduled pull + task display
-- Sponsor self-serve dashboard (v2)
 - Contributor level + reliability score logic
-- Standard/premium task tier support
+- Standard/premium task tier gating in feed
+- Sponsor self-serve dashboard (v2)
 
-### Architecture (Updated)
+### Architecture
 ```
+backend/src/
 ├── index.ts
 ├── routes/
 │   ├── auth.ts           # Register, login, me
@@ -475,22 +550,15 @@ MIT License © 2026 Erik Contador
     └── jwt.ts            # JWT create/verify, bcrypt, user helpers
 ```
 
-### Sponsor Postback Flow
-1. User clicks "Surveys" → TheoremReach survey wall opens (iframe/redirect)
-2. User completes survey → TheoremReach sends GET postback to `/api/postback/theoremreach`
-3. EarnStack validates (duplicate check, config active check)
-4. User's `sponsor_earnings` credited at configured share % (default 70%)
-5. Balance immediately available for withdrawal (no manual review needed)
-
-### Sponsor Config
+### Sponsor Network Config
 ```bash
-# Enable theoremreach
+# Enable TheoremReach
 curl -X PUT http://localhost:3001/api/postback/config \
   -H "Content-Type: application/json" \
   -H "x-postback-secret: earnstack-postback-dev-secret" \
   -d '{"network":"theoremreach","active":true,"user_share_pct":70}'
 
-# Enable adgate
+# Enable AdGate
 curl -X PUT http://localhost:3001/api/postback/config \
   -H "Content-Type: application/json" \
   -H "x-postback-secret: earnstack-postback-dev-secret" \
@@ -505,5 +573,6 @@ cd backend && bun --hot src/index.ts    # port 3001
 cd frontend && bun run dev              # port 5173
 ```
 
+### Deployment Note
 
 The Zo-managed deployment at `file 'earn-stack-app'` uses a single-process architecture (Hono + Vite in one Bun server). This GitHub repo preserves the cleaner frontend/backend split for code organization. See [Zo Sites docs](/?t=sites) for deployment options.
