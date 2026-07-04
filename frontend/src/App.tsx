@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
+import BottomNav from "@/components/BottomNav";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/surveys" element={<Surveys />} />
         </Routes>
+        <BottomNav />
       </BrowserRouter>
     </ThemeProvider>
   );

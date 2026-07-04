@@ -10,97 +10,158 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <section className="max-w-4xl mx-auto px-6 pt-24 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm mb-8">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Canada Only
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      {/* Nav */}
+      <header className="border-b border-[var(--border)] bg-[var(--surface)]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="14" width="18" height="3" rx="1.5" fill="var(--primary)" opacity="0.4"/>
+              <rect x="3" y="10" width="18" height="3" rx="1.5" fill="var(--primary)" opacity="0.7"/>
+              <rect x="3" y="6" width="18" height="3" rx="1.5" fill="var(--primary)"/>
+              <circle cx="19" cy="19" r="3" fill="var(--success)"/>
+              <path d="M17.5 19l1 1 2-2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="font-semibold tracking-tight">
+              Earn<span className="text-[var(--primary)] font-bold">Stack</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {loggedIn ? (
+              <Link to="/tasks" className="px-4 py-1.5 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-hover)] transition-colors">
+                Open App
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="px-3 py-1.5 rounded-lg text-sm text-[var(--foreground-muted)] hover:bg-[var(--secondary)] transition-colors">
+                  Sign In
+                </Link>
+                <Link to="/register" className="px-4 py-1.5 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-hover)] transition-colors">
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-16 pb-14">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--success-bg)] border border-[var(--border)] text-[var(--success)] text-xs font-medium mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
+          Canada only · PayPal payouts · $5 minimum
         </div>
 
-        <h1 className="text-5xl font-bold tracking-tight mb-6 leading-tight">
-          Earn real cash for
-          <span className="text-emerald-400"> short tasks</span>
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-5 leading-tight">
+          Complete verified tasks.<br />
+          <span className="text-[var(--primary)]">Get paid in real cash.</span>
         </h1>
 
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-          Surveys, app tests, and quick promo actions from verified Canadian sponsors.
-          No points, no gamification — just clear tasks at clear rates, paid out via PayPal
-          at a $5 minimum.
+        <p className="text-lg text-[var(--foreground-muted)] max-w-xl mb-8 leading-relaxed">
+          EarnStack connects verified Canadians with short sponsor-funded tasks — surveys,
+          app tests, and quick promo actions. Clear rates, manual review, PayPal payout.
+          No points. No hype.
         </p>
 
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           {loggedIn ? (
-            <Link
-              to="/tasks"
-              className="px-8 py-3 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition-colors"
-            >
+            <Link to="/tasks" className="px-6 py-3 rounded-xl bg-[var(--primary)] text-white font-semibold hover:bg-[var(--primary-hover)] transition-colors">
               Browse Tasks
             </Link>
           ) : (
             <>
-              <Link
-                to="/register"
-                className="px-8 py-3 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition-colors"
-              >
-                Get Started
+              <Link to="/register" className="px-6 py-3 rounded-xl bg-[var(--primary)] text-white font-semibold hover:bg-[var(--primary-hover)] transition-colors">
+                Create Free Account
               </Link>
-              <Link
-                to="/login"
-                className="px-8 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-semibold hover:border-zinc-500 hover:text-white transition-colors"
-              >
+              <Link to="/login" className="px-6 py-3 rounded-xl border border-[var(--border)] text-[var(--foreground)] font-medium hover:bg-[var(--secondary)] transition-colors">
                 Sign In
               </Link>
             </>
           )}
         </div>
+
+        <p className="text-xs text-[var(--foreground-faint)] mt-4">
+          Earnings may be taxable under CRA guidelines. EarnStack is not financial advice.
+        </p>
       </section>
 
-      <section className="max-w-5xl mx-auto px-6 pb-24">
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-2xl border border-zinc-800 bg-card">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Verified Users Only</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Every user verifies their identity before accessing tasks.
-              Sponsors get real humans, you get real tasks.
-            </p>
-          </div>
-
-          <div className="p-6 rounded-2xl border border-zinc-800 bg-card">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Transparent Payouts</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Every task shows its payout up front. Reach $5 and cash out
-              via PayPal. No hidden fees, no minimums you can't hit.
-            </p>
-          </div>
-
-          <div className="p-6 rounded-2xl border border-zinc-800 bg-card">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Fraud-Protected</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Device checks, velocity limits, and manual review on payouts.
-              Built to keep scammers out from day one.
-            </p>
+      {/* How it works */}
+      <section className="border-t border-[var(--border)] bg-[var(--surface)]">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
+          <h2 className="text-sm font-semibold text-[var(--foreground-muted)] uppercase tracking-wider mb-8">How it works</h2>
+          <div className="grid sm:grid-cols-3 gap-6">
+            <Step
+              number="1"
+              title="Verify your account"
+              description="Confirm your identity once. Sponsors need real Canadians — we keep the quality high."
+            />
+            <Step
+              number="2"
+              title="Complete verified tasks"
+              description="Browse available tasks, submit proof of completion, and wait for manual review."
+            />
+            <Step
+              number="3"
+              title="Cash out via PayPal"
+              description="Once your balance hits $5, request a payout. Funds sent to your PayPal within 1–2 business days."
+            />
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-zinc-800 py-8 text-center text-sm text-muted-foreground">
+      {/* Trust signals */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
+        <h2 className="text-sm font-semibold text-[var(--foreground-muted)] uppercase tracking-wider mb-8">Built for trust</h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <TrustCard
+            title="Verified users only"
+            body="Every user verifies their identity before accessing tasks. Sponsors get real humans."
+          />
+          <TrustCard
+            title="Transparent payouts"
+            body="Every task shows its payout up front. Reach $5 and cash out via PayPal."
+          />
+          <TrustCard
+            title="Fraud-protected"
+            body="Device checks, velocity limits, and manual review on every payout."
+          />
+          <TrustCard
+            title="No fake urgency"
+            body="No countdown timers, spin wheels, or misleading earnings claims. Just honest work."
+          />
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[var(--border)] py-8 text-center text-sm text-[var(--foreground-faint)]">
         <p>EarnStack &copy; {new Date().getFullYear()} &mdash; Built in Canada for Canadians</p>
+        <p className="mt-1">
+          <a href="https://earnstack.ca" className="hover:text-[var(--foreground-muted)] transition-colors" target="_blank" rel="noopener noreferrer">
+            earnstack.ca
+          </a>
+        </p>
       </footer>
+    </div>
+  );
+}
+
+function Step({ number, title, description }: { number: string; title: string; description: string }) {
+  return (
+    <div>
+      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--secondary)] text-[var(--primary)] text-xs font-bold mb-3">
+        {number}
+      </span>
+      <h3 className="font-semibold mb-1.5">{title}</h3>
+      <p className="text-sm text-[var(--foreground-muted)] leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+function TrustCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+      <h3 className="font-semibold mb-1.5">{title}</h3>
+      <p className="text-sm text-[var(--foreground-muted)] leading-relaxed">{body}</p>
     </div>
   );
 }

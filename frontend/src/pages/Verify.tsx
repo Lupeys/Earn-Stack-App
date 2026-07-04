@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { sendVerificationCode, verifyCode, getUser } from "../utils/auth";
+import { sendVerificationCode, verifyCode } from "../utils/auth";
 
 export default function Verify() {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export default function Verify() {
       const response = await sendVerificationCode();
       if (response.success) {
         setStatus("sent");
-        setMessage("Code sent to your email. Check your inbox (and spam folder).");
+        setMessage("Code sent to your email. Check your inbox and spam folder.");
       } else {
         setStatus("error");
         setMessage("Failed to send code. Please try again.");
@@ -37,8 +37,8 @@ export default function Verify() {
     try {
       await verifyCode(code);
       setStatus("done");
-      setMessage("Email verified! Redirecting...");
-      setTimeout(() => navigate("/tasks"), 1000);
+      setMessage("Email verified! Taking you to your tasks…");
+      setTimeout(() => navigate("/tasks"), 1200);
     } catch (err: any) {
       setStatus("error");
       setMessage(err.message || "Invalid or expired code.");
@@ -47,36 +47,35 @@ export default function Verify() {
     }
   }
 
-  // Auto-send code on mount if no code sent yet
   if (status === "idle") {
     handleSend();
     setStatus("sent");
   }
 
+  const statusStyle = {
+    done: "bg-[var(--success-bg)] border-[var(--success)]/30 text-[var(--success)]",
+    error: "bg-[var(--destructive-bg)] border-[var(--destructive)]/20 text-[var(--destructive)]",
+    sent: "bg-[var(--secondary)] border-[var(--border)] text-[var(--foreground-muted)]",
+    idle: "",
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">Verify Your Email</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {status === "sent" || status === "idle"
-              ? "We sent a 6-digit code to your email"
-              : status === "done"
-              ? "Account verified!"
-              : "Verification needed to continue"}
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--secondary)] mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.05 10.82 19.79 19.79 0 011 2.22 2 2 0 012.96 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold mb-1">Verify your email</h1>
+          <p className="text-sm text-[var(--foreground-muted)]">
+            {status === "done" ? "Account verified!" : "Enter the 6-digit code we sent to your email"}
           </p>
         </div>
 
         {message && (
-          <div
-            className={`p-3 rounded-lg mb-4 text-sm ${
-              status === "done"
-                ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                : status === "error"
-                ? "bg-red-500/10 border border-red-500/20 text-red-400"
-                : "bg-blue-500/10 border border-blue-500/20 text-blue-400"
-            }`}
-          >
+          <div className={`p-3 rounded-lg border mb-5 text-sm ${statusStyle[status]}`}>
             {message}
           </div>
         )}
@@ -84,7 +83,7 @@ export default function Verify() {
         {status !== "done" && (
           <form onSubmit={handleVerify} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5">6-digit code</label>
+              <label className="block text-sm font-medium mb-1.5 text-center">6-digit code</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -95,7 +94,7 @@ export default function Verify() {
                   setCode(val);
                 }}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-card text-foreground text-center text-2xl tracking-[0.5rem] focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] text-center text-2xl tracking-[0.5rem] focus:outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition-colors"
                 placeholder="000000"
                 autoFocus
               />
@@ -104,16 +103,16 @@ export default function Verify() {
             <button
               type="submit"
               disabled={loading || code.length !== 6}
-              className="w-full py-3 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400 disabled:opacity-50 transition-colors"
+              className="w-full py-3 rounded-xl bg-[var(--primary)] text-white font-semibold hover:bg-[var(--primary-hover)] disabled:opacity-50 transition-colors"
             >
-              {loading ? "Verifying..." : "Verify Email"}
+              {loading ? "Verifying…" : "Verify Email"}
             </button>
 
             <button
               type="button"
               onClick={handleSend}
               disabled={loading}
-              className="w-full py-2 text-sm text-emerald-400 hover:underline"
+              className="w-full py-2 text-sm text-[var(--foreground-muted)] hover:text-[var(--primary)] transition-colors"
             >
               Resend code
             </button>

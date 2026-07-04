@@ -25,30 +25,34 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link to="/" className="text-emerald-400 text-sm hover:underline">&larr; Back to EarnStack</Link>
-          <h1 className="text-2xl font-bold mt-4">Create Account</h1>
-          <p className="text-muted-foreground text-sm mt-1">Start earning today</p>
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8">
+          <Link to="/" className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors inline-flex items-center gap-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Back
+          </Link>
+          <h1 className="text-2xl font-bold mt-5 mb-1">Create account</h1>
+          <p className="text-sm text-[var(--foreground-muted)]">Canada only · Free to join · PayPal payouts</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="p-3 rounded-lg bg-[var(--destructive-bg)] border border-[var(--destructive)]/20 text-[var(--destructive)] text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Display Name</label>
+            <label className="block text-sm font-medium mb-1.5">Display name</label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               required
-              className="w-full px-4 py-2.5 rounded-xl border border-zinc-700 bg-card text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] placeholder:text-[var(--foreground-faint)] focus:outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition-colors"
               placeholder="Your name"
+              autoComplete="name"
             />
           </div>
 
@@ -59,8 +63,9 @@ export default function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2.5 rounded-xl border border-zinc-700 bg-card text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] placeholder:text-[var(--foreground-faint)] focus:outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition-colors"
               placeholder="you@example.com"
+              autoComplete="email"
             />
           </div>
 
@@ -72,23 +77,29 @@ export default function Register() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full px-4 py-2.5 rounded-xl border border-zinc-700 bg-card text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] placeholder:text-[var(--foreground-faint)] focus:outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition-colors"
               placeholder="Min 8 characters"
+              autoComplete="new-password"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400 disabled:opacity-50 transition-colors"
+            className="w-full py-3 rounded-xl bg-[var(--primary)] text-white font-semibold hover:bg-[var(--primary-hover)] disabled:opacity-50 transition-colors"
           >
-            {loading ? "Creating account..." : "Create Account"}
+            {loading ? "Creating account…" : "Create Account"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
+        <p className="text-xs text-[var(--foreground-faint)] text-center mt-4 leading-relaxed">
+          By signing up you confirm you are a Canadian resident.
+          Earnings may be taxable under CRA guidelines.
+        </p>
+
+        <p className="text-center text-sm text-[var(--foreground-muted)] mt-4">
           Already have an account?{" "}
-          <Link to="/login" className="text-emerald-400 hover:underline">Sign in</Link>
+          <Link to="/login" className="text-[var(--primary)] hover:underline font-medium">Sign in</Link>
         </p>
       </div>
     </div>
