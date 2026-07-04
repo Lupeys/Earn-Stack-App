@@ -5,6 +5,10 @@ export interface AuthPayload {
 
 const JWT_SECRET = process.env.JWT_SECRET || "earnstack-dev-secret-change-in-production";
 
+function generateCode(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
 function base64url(str: string): string {
   return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }

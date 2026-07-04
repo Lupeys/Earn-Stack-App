@@ -97,6 +97,17 @@ function migrate(db: Database) {
       resolved INTEGER NOT NULL DEFAULT 0
     )
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS verification_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      code TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
 }
 
 // ─────────────────────────────────────────────

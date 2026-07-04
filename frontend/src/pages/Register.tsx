@@ -16,7 +16,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register(email, password, displayName);
-      navigate("/tasks");
+      navigate("/verify");
     } catch (err: any) {
       setError(err.message);
     } finally {

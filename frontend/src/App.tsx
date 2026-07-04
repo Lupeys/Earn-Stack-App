@@ -3,6 +3,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import Verify from "@/pages/Verify";
 import TaskFeed from "@/pages/TaskFeed";
 import TaskComplete from "@/pages/TaskComplete";
 import Earnings from "@/pages/Earnings";
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify" element={<Verify />} />
           <Route path="/tasks" element={<TaskFeed />} />
           <Route path="/tasks/:id" element={<TaskComplete />} />
           <Route path="/earnings" element={<Earnings />} />

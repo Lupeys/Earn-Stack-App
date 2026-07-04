@@ -54,4 +54,25 @@ export async function getMe(): Promise<UserData | null> {
   }
 }
 
+export async function sendVerificationCode(): Promise<{ success: boolean; message: string }> {
+  const res = await fetchApi("/api/verify/send", { method: "POST" });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to send code");
+  return { success: data.sent, message: data.message };
+}
+
+export async function verifyCode(code: string): Promise<boolean> {
+  const res = await fetchApi("/api/verify", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Verification failed");
+  return data.verified;
+}
+
+export async function getUser(): Promise<UserData | null> {
+  return getMe();
+}
+
 export { isLoggedIn, getToken };

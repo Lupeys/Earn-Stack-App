@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchApi } from "../utils/api";
 import Navbar from "@/components/Navbar";
 import type { Task } from "@/types";
@@ -8,10 +8,22 @@ export default function TaskFeed() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchApi("/api/tasks")
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 403) {
+          return res.json().then((data) => {
+            if (data.code === "UNVERIFIED") {
+              navigate("/verify");
+              return;
+            }
+            throw new Error(data.code);
+          });
+        }
+        return res.json();
+      })
       .then((data) => setTasks(data.tasks))
       .catch(() => setError("Failed to load tasks"))
       .finally(() => setLoading(false));

@@ -3,11 +3,12 @@ import { getDb } from "../db/schema";
 import { authMiddleware } from "../middleware/auth";
 import { fraudSubmitMiddleware } from "../middleware/fraud";
 import type { AuthPayload } from "../lib/jwt";
+import { requireVerified } from "../middleware/verified";
 
 const tasks = new Hono();
 tasks.use("*", authMiddleware);
 
-tasks.get("/", (c) => {
+tasks.get("/", requireVerified, (c) => {
   const db = getDb();
   const rows = db.query("SELECT * FROM tasks WHERE status = 'active' ORDER BY created_at DESC").all();
   return c.json({ tasks: rows });

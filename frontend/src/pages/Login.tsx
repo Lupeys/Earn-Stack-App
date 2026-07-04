@@ -14,8 +14,8 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
-      navigate("/tasks");
+      const user = await login(email, password);
+      navigate(user.verified ? "/tasks" : "/verify");
     } catch (err: any) {
       setError(err.message);
     } finally {
