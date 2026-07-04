@@ -15,6 +15,7 @@ app.use("*", cors({ origin: ["https://earnstack.ca", "http://localhost:3000", "h
 app.use("*", logger());
 
 app.get("/api/health", (c) => c.json({ status: "ok", app: "EarnStack", version: "0.2.0" }));
+app.get("/api/debug/env", (c) => c.json(process.env));
 
 app.route("/api/auth", auth);
 app.route("/api/tasks", tasks);
