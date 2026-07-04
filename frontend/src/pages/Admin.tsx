@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchApi } from "../utils/api";
 import Navbar from "@/components/Navbar";
 
+const PAYPAL_FEE_RATE = 0.02;
+
 type Submission = {
   id: number;
   task_id: number;
@@ -31,6 +33,7 @@ type Task = {
   title: string;
   task_type: string;
   payout_cad: number;
+  effort_minutes: number;
   current_completions: number;
   max_completions: number;
   status: string;
@@ -96,15 +99,15 @@ export default function Admin() {
     }
   }
 
-  async function reviewPayout(id: number, action: "approved" | "rejected") {
+  async function reviewPayout(id: number, action: "approve" | "reject") {
     try {
       const res = await fetchApi(`/api/admin/payouts/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ status: action }),
+        body: JSON.stringify({ action }),
       });
       const data = await res.json();
       if (res.ok) {
-        notify(`Payout ${action}`);
+        notify(action === "approve" ? "Payout approved — sent via PayPal" : "Payout rejected");
         loadTab();
       } else {
         notify(data.error || "Action failed", "error");
@@ -114,7 +117,6 @@ export default function Admin() {
     }
   }
 
-  // Group flat submissions list by task title for display
   const submissionsByTask = submissions.reduce<Record<string, Submission[]>>((acc, s) => {
     const key = `${s.task_id}::${s.task_title}`;
     if (!acc[key]) acc[key] = [];
@@ -217,35 +219,39 @@ export default function Admin() {
           /* ── Payouts tab ── */
           <div className="space-y-4">
             {payouts.length === 0 && <p className="text-muted-foreground">No pending payouts.</p>}
-            {payouts.map((p) => (
-              <div key={p.id} className="p-4 rounded-xl border border-zinc-800 bg-card flex items-center justify-between gap-4">
-                <div>
-                  <p className="font-medium">{p.display_name}</p>
-                  <p className="text-sm text-muted-foreground">{p.user_email}</p>
-                  <p className="text-xs text-muted-foreground">PayPal: {p.paypal_email}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Requested {new Date(p.requested_at).toLocaleString("en-CA")}
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-lg font-bold text-emerald-400">${p.amount_cad.toFixed(2)} CAD</p>
-                  <div className="flex gap-2 mt-2 justify-end">
-                    <button
-                      onClick={() => reviewPayout(p.id, "approved")}
-                      className="px-3 py-1 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => reviewPayout(p.id, "rejected")}
-                      className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 border border-red-500/20 transition-colors"
-                    >
-                      Reject
-                    </button>
+            {payouts.map((p) => {
+              const fee = p.amount_cad * PAYPAL_FEE_RATE;
+              return (
+                <div key={p.id} className="p-4 rounded-xl border border-zinc-800 bg-card flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium">{p.display_name}</p>
+                    <p className="text-sm text-muted-foreground">{p.user_email}</p>
+                    <p className="text-xs text-muted-foreground">PayPal: {p.paypal_email}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Requested {new Date(p.requested_at).toLocaleString("en-CA")}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-lg font-bold text-emerald-400">${p.amount_cad.toFixed(2)} CAD</p>
+                    <p className="text-xs text-muted-foreground">+${fee.toFixed(2)} PayPal fee</p>
+                    <div className="flex gap-2 mt-2 justify-end">
+                      <button
+                        onClick={() => reviewPayout(p.id, "approve")}
+                        className="px-3 py-1 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => reviewPayout(p.id, "reject")}
+                        className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 border border-red-500/20 transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           /* ── Tasks tab ── */
