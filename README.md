@@ -101,54 +101,64 @@ Rule structure:
 ```
 earn-stack-app/
 ├── frontend/                  # Vite + TypeScript React + Tailwind CSS
-│   ├── public/
-│   │   ├── manifest.json      # PWA manifest
-│   │   ├── sw.js              # Service worker (offline shell)
-│   │   └── icons/             # PWA icons (192x192, 512x512)
 │   ├── src/
 │   │   ├── components/        # Shared UI components
+│   │   │   ├── BottomNav.tsx  # Mobile tab bar (Tasks|Surveys|Rewards|Earnings|Cash Out)
+│   │   │   ├── Navbar.tsx     # Desktop navigation + auth-aware links
+│   │   │   └── theme-provider.tsx  # Dark/light theme provider
 │   │   ├── pages/             # Route-level page components
-│   │   │   ├── Landing.tsx    # Trust-first landing page
-│   │   │   ├── TaskFeed.tsx   # Available tasks (standard + premium)
-│   │   │   ├── TaskDetail.tsx # Task completion + proof submission
-│   │   │   ├── Earnings.tsx   # Ledger: pending review, available balance
-│   │   │   ├── Payout.tsx     # PayPal cashout ($5 min)
+│   │   │   ├── Home.tsx       # Trust-first landing page
+│   │   │   ├── Register.tsx   # Email/name/password signup
+│   │   │   ├── Login.tsx      # Email/login sign-in
+│   │   │   ├── Verify.tsx     # Email OTP verification gate
+│   │   │   ├── TaskFeed.tsx   # Standard + premium task feed
+│   │   │   ├── TaskComplete.tsx # Proof submission per task
 │   │   │   ├── Surveys.tsx    # TheoremReach survey wall embed
-│   │   │   ├── Status.tsx     # Contributor level, progress, inactivity notice
-│   │   │   └── Admin.tsx      # Task mgmt, payout approval, fraud flags
-│   │   ├── context/           # Auth context
-│   │   ├── utils/             # API client, constants
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── index.html
+│   │   │   ├── Rewards.tsx    # Canadian rewards stacking guide
+│   │   │   ├── Earnings.tsx   # Pending, available, lifetime ledger
+│   │   │   ├── Payout.tsx     # PayPal cashout (C min)
+│   │   │   └── Admin.tsx      # Task CRUD, completion review, payout approval
+│   │   ├── types/index.ts     # TypeScript interfaces (User, Task, etc.)
+│   │   ├── utils/
+│   │   │   ├── api.ts         # Client-side fetch wrapper with auth header
+│   │   │   ├── auth.ts        # Token management helpers
+│   │   │   ├── utils.ts       # General helpers
+│   │   │   └── zo-theme.ts    # Zo theming bridge
+│   │   ├── App.tsx            # React Router — all page routes defined here
+│   │   └── main.tsx           # React entry point
 │   ├── tailwind.config.ts
 │   ├── vite.config.ts
 │   └── package.json
 │
 ├── backend/                   # Hono (Bun) REST API
 │   ├── src/
-│   │   ├── index.ts           # Hono app entry
+│   │   ├── index.ts           # Hono app entry, CORS, route mounting
 │   │   ├── routes/
-│   │   │   ├── auth.ts        # Register, login, verify
-│   │   │   ├── tasks.ts       # Task feed, submission, proof upload
-│   │   │   ├── earnings.ts    # Ledger + sponsor earnings
-│   │   │   ├── payouts.ts     # Payout requests (includes sponsor balance)
-│   │   │   ├── postback.ts    # TheoremReach + AdGate postback handlers
-│   │   │   ├── verify.ts      # Email OTP verification
-│   │   │   └── admin.ts       # Admin-only: approve, flag, manage
+│   │   │   ├── auth.ts        # Register, login, me
+│   │   │   ├── tasks.ts       # Feed (tier-gated), detail, submission, status
+│   │   │   ├── earnings.ts    # Ledger — manual + sponsor earnings combined
+│   │   │   ├── payouts.ts     # Payout request, history (includes sponsor balance)
+│   │   │   ├── postback.ts    # TheoremReach + AdGate postback handlers + config
+│   │   │   ├── verify.ts      # Email OTP verification (Resend API)
+│   │   │   ├── adgate.ts      # AdGate offer feed sync + cache
+│   │   │   └── admin.ts       # Admin: task CRUD, completion review, payout approval
 │   │   ├── middleware/
-│   │   │   ├── auth.ts        # JWT middleware
+│   │   │   ├── auth.ts        # JWT + admin middleware
 │   │   │   ├── verified.ts    # Email verification gate
+│   │   │   ├── contributor.ts # Level system, decay, reinstatement
 │   │   │   └── fraud.ts       # Velocity limits, device checks
 │   │   ├── db/
-│   │   │   ├── schema.ts      # Database schema
-│   │   │   └── seed.ts        # Seed tasks + admin user
+│   │   │   └── schema.ts      # SQLite schema, migration, seed data
 │   │   └── lib/
-│   │       ├── jwt.ts
+│   │       ├── jwt.ts         # JWT create/verify, bcrypt
+│   │       ├── email.ts       # Resend email sender
 │   │       └── paypal.ts      # PayPal Payouts API client
-│   ├── package.json
-│   └── .env.example
+│   └── package.json
 │
+├── data/
+│   └── earnstack.db           # SQLite database (auto-created)
+├── package.json               # Root deps (Bun workspace)
+├── index.tsx                  # Entry — re-exports backend/src/index.ts
 ├── zosite.json                # Zo Sites deployment config
 └── README.md
 ```
@@ -556,76 +566,60 @@ MIT License © 2026 Erik Contador
 
 ---
 
-### Current Implementation Status (2026-07-04)
+### Current State (2026-07-04)
 
 **✅ Working:**
-- Auth (register, login, JWT) — verified end-to-end
-- Task feed, detail, submission with proof upload
-- Earnings ledger with pending/cleared/paid status
-- Payout request flow ($5 min withdrawal)
-- Admin panel (task CRUD, completion review, payout approval)
+- Auth (register, login, JWT) — end-to-end tested
 - Email OTP verification gate (Resend API)
+- Task feed — tier-gated (standard always visible, premium locked by contributor level)
+- Task detail, submission with proof upload
+- Earnings ledger — manual tasks + sponsor earnings combined
+- Payout request flow (C$5 minimum withdrawal)
+- Admin panel (task CRUD, completion review, payout approval)
 - Anti-fraud middleware (velocity, device, IP checks)
-- PayPal Payouts sandbox integration ✅
-- SQLite database with auto-creation + seed data
-- TheoremReach postback — survey completions auto-credit users ✅
-- AdGate postback — offer conversions + reversals handled ✅
-- `sponsor_config` table — per-network share %, active toggle, API keys
-- `sponsor_earnings` table — separate ledger for offer wall earnings (auto-cleared)
-- `postback_log` table — full audit trail of all incoming postbacks
-- Frontend `/surveys` page with TheoremReach survey wall embed
+- PayPal Payouts sandbox — tested ✅
+
+**🆕 Sponsor Networks (v0.3):**
+- TheoremReach postback — auto-credits users on survey completion
+- AdGate Media postback — offer conversions + reversal handling
+- AdGate offer feed sync — scheduled pull → upsert into tasks as standard tier
+- User share: 70% (configurable per-network via `/api/postback/config`)
+
+**🆕 Contributor Levels (v0.4) — feature/rewards-stacking:**
+- Three levels: New → Reliable → Verified Contributor
+- First-time thresholds: 5 approved → Reliable, 15 → Verified Contributor
+- Reinstatement is faster: 2 approved → Reliable, 5 → Verified Contributor
+- Inactivity decay after 60 days — Verified → Reliable, Reliable → New
+- Level evaluated on every completion approval; decay checked on every request
+- Task feed gating — premium tasks show as locked with reason for under-level users
 
 **⏳ Pending:**
-- AdGate offer feed — scheduled pull + task display
-- Contributor level + reliability score logic
-- Standard/premium task tier gating in feed
+- TheoremReach publisher account signup
+- AdGate publisher account signup
+- Production postback URLs configured on sponsor dashboards
 - Sponsor self-serve dashboard (v2)
+- Phone verification (in addition to email)
 
-### Architecture
-```
-backend/src/
-├── index.ts
-├── routes/
-│   ├── auth.ts           # Register, login, me
-│   ├── tasks.ts          # Task feed, detail, submission
-│   ├── earnings.ts       # Ledger + sponsor earnings
-│   ├── payouts.ts        # Payout request, history (includes sponsor balance)
-│   ├── postback.ts       # TheoremReach + AdGate postback handlers + config
-│   ├── verify.ts         # Email OTP verification
-│   └── admin.ts          # Task mgmt, review, payout approval
-├── middleware/
-│   ├── auth.ts           # JWT auth + admin middleware
-│   ├── verified.ts       # Email verification gate
-│   └── fraud.ts          # Anti-fraud checks
-├── db/
-│   └── schema.ts         # SQLite schema + sponsor config + seed data
-└── lib/
-    └── jwt.ts            # JWT create/verify, bcrypt, user helpers
-```
+**🚫 Removed (2026-07-04):**
+- n8n service — removed to free up the single Free plan HTTP slot
+- Duplicate earn-stack-app service — cleaned up
 
-### Sponsor Network Config
+### Development
+
 ```bash
-# Enable TheoremReach
-curl -X PUT http://localhost:3001/api/postback/config \
-  -H "Content-Type: application/json" \
-  -H "x-postback-secret: earnstack-postback-dev-secret" \
-  -d '{"network":"theoremreach","active":true,"user_share_pct":70}'
+# Start backend
+cd backend && bun --hot src/index.ts
 
-# Enable AdGate
-curl -X PUT http://localhost:3001/api/postback/config \
-  -H "Content-Type: application/json" \
-  -H "x-postback-secret: earnstack-postback-dev-secret" \
-  -d '{"network":"adgate","active":true,"user_share_pct":70}'
+# Start frontend
+cd frontend && bun run dev
+
+# Production build (Zo Sites)
+bun run prod
 ```
 
-### Running Locally
-```bash
-cd backend && bun install && cd ..
-cd frontend && bun install && cd ..
-cd backend && bun --hot src/index.ts    # port 3001
-cd frontend && bun run dev              # port 5173
-```
+### Deployment
 
-### Deployment Note
+EarnStack runs as a Zo Site at `file 'earn-stack-app'`, accessible at `https://earn-stack-app-lupeys.zo.computer` (private — owner sign-in required).
 
-The Zo-managed deployment at `file 'earn-stack-app'` uses a single-process architecture (Hono + Vite in one Bun server). This GitHub repo preserves the cleaner frontend/backend split for code organization. See [Zo Sites docs](/?t=sites) for deployment options.
+A single Bun process serves the Hono API and Vite frontend together. The `backend/` / `frontend/` split is for code organization — the live deployment uses root `package.json`.
+
