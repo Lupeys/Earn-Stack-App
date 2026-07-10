@@ -116,6 +116,73 @@ postback.get("/adgate", (c) => {
 });
 
 // ─────────────────────────────────────────────
+// CPAGrip postback
+// GET /api/postback/cpagrip?cid={user_id}&payout={amount}&txid={transaction_id}&status=approved&offer_id={offer_id}
+// cid = subid we pass at click time (contains user_id)
+// payout = USD payout for this conversion
+// txid = CPAGrip transaction ID
+// status = approved, reversed, etc.
+// ─────────────────────────────────────────────
+postback.get("/cpagrip", (c) => {
+  const db = getDb();
+  const userId = parseInt(c.req.query("cid") || c.req.query("user_id") || "0");
+  const payout = parseFloat(c.req.query("payout") || "0");
+  const txId = c.req.query("txid") || c.req.query("tx_id") || c.req.query("transaction_id") || "";
+  const offerId = c.req.query("offer_id") || c.req.query("offer_name") || "";
+  const status = (c.req.query("status") || "approved").toLowerCase();
+
+  if (!userId || !payout || !txId) {
+    return c.json({ error: "Missing required params (cid, payout, txid)" }, 400);
+  }
+
+  if (status === "reversal" || status === "chargeback") {
+    console.log(`[postback] CPAGrip: reversal for tx=${txId}, status=${status}`);
+
+    const existing = db.query(
+      "SELECT id FROM postback_log WHERE external_tx_id = ? AND network = 'cpagrip'"
+    ).get(txId);
+
+    if (existing) {
+      db.run(
+        "UPDATE sponsor_earnings SET status = 'reversed' WHERE postback_log_id = ? AND network = 'cpagrip'",
+        [(existing as { id: number }).id]
+      );
+      db.run(
+        "UPDATE postback_log SET status = 'reversed' WHERE id = ?",
+        [(existing as { id: number }).id]
+      );
+    }
+
+    return c.json({ status: "reversal_processed" });
+  }
+
+  const existing = db.query(
+    "SELECT id FROM postback_log WHERE external_tx_id = ? AND network = 'cpagrip'"
+  ).get(txId);
+  if (existing) {
+    return c.json({ status: "duplicate", message: "Already processed" });
+  }
+
+  const config = db.query(
+    "SELECT user_share_pct, active FROM sponsor_config WHERE network = 'cpagrip'"
+  ).get() as { user_share_pct: number; active: number } | null;
+
+  if (!config || !config.active) {
+    return c.json({ status: "disabled" });
+  }
+
+  const userShare = Math.round(payout * (config.user_share_pct / 100) * 100) / 100;
+
+  const rawBody = c.req.url;
+  const log = logPostback(db, "cpagrip", txId, offerId, userId, payout, rawBody);
+  creditUser(db, userId, log.id, userShare, "cpagrip");
+
+  console.log(`[postback] CPAGrip: user=${userId} payout=$${payout} USD user_share=$${userShare.toFixed(2)} CAD`);
+
+  return c.json({ status: "ok", credited: userShare });
+});
+
+// ─────────────────────────────────────────────
 // Config endpoint (admin-only, uses shared secret)
 // GET /api/postback/config?network=theoremreach
 // PUT /api/postback/config

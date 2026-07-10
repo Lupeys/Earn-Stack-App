@@ -512,6 +512,7 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 - [ ] Deploy to Zo Sites → EarnStack.ca
 - [ ] TheoremReach postback integration
 - [ ] AdGate postback integration
+- [ ] CPAGrip postback integration
 - [ ] PayPal Payouts API integration
 - [ ] Beta user testing (Canadian users only)
 

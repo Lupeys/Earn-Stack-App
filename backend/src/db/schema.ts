@@ -172,17 +172,33 @@ function migrate(db: Database) {
     )
   `);
 
-  const configCount = (db.query("SELECT COUNT(*) as c FROM sponsor_config").get() as {c: number}).c;
-  if (configCount === 0) {
-    db.run("INSERT INTO sponsor_config (network, user_share_pct, active) VALUES ('theoremreach', 70.0, 0)");
-    db.run("INSERT INTO sponsor_config (network, user_share_pct, active) VALUES ('adgate', 70.0, 0)");
-  }
+  db.run("INSERT OR IGNORE INTO sponsor_config (network, user_share_pct, active) VALUES ('theoremreach', 70.0, 0)");
+  db.run("INSERT OR IGNORE INTO sponsor_config (network, user_share_pct, active) VALUES ('adgate', 70.0, 0)");
+  db.run("INSERT OR IGNORE INTO sponsor_config (network, user_share_pct, active) VALUES ('cpagrip', 70.0, 0)");
 
   // ── AdGate offer feed cache (v0.4)
   // Stores normalised offers pulled from AdGate's offer API.
   // Synced on a schedule; upserted into tasks table as tier='standard'.
   db.run(`
     CREATE TABLE IF NOT EXISTS adgate_offer_cache (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      external_offer_id TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      payout_cad REAL NOT NULL,
+      effort_minutes INTEGER NOT NULL DEFAULT 5,
+      offer_url TEXT NOT NULL DEFAULT '',
+      requirements TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1,
+      last_synced_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ── CPAGrip offer cache (v0.5)
+  // Stores normalised offers pulled from CPAGrip's offer feed.
+  // Synced on a schedule; upserted into tasks table as tier='standard'.
+  db.run(`
+    CREATE TABLE IF NOT EXISTS cpagrip_offer_cache (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       external_offer_id TEXT NOT NULL UNIQUE,
       title TEXT NOT NULL,

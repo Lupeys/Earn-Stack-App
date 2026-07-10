@@ -8,7 +8,7 @@ import type { AuthPayload } from "../lib/jwt";
 
 export type ContributorLevel = "new" | "reliable" | "verified_contributor";
 
-const LEVEL_RANK: Record<ContributorLevel, number> = {
+export const LEVEL_RANK: Record<ContributorLevel, number> = {
   new: 0,
   reliable: 1,
   verified_contributor: 2,
