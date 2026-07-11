@@ -16,6 +16,8 @@ export function isLoggedIn(): boolean {
   return !!getToken();
 }
 
+const API_BASE = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE) || "";
+
 export async function fetchApi(path: string, options: RequestInit = {}): Promise<Response> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -25,5 +27,5 @@ export async function fetchApi(path: string, options: RequestInit = {}): Promise
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-  return fetch(path, { ...options, headers });
+  return fetch(API_BASE + path, { ...options, headers });
 }
