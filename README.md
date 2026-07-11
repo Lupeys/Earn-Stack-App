@@ -2,35 +2,13 @@
 
 > **Real side cash for Canadians. Verified tasks. Transparent payouts. No hype.**
 
-EarnStack is a Canada-first micro-task marketplace where verified users complete sponsor-funded tasks and earn real cash, paid out via PayPal at a $5 minimum.
+EarnStack is a Canada-first micro-task marketplace where verified users complete sponsor-funded tasks and earn real cash, paid out via PayPal at a $5 minimum. The platform combines a broad wall of standard verified tasks with premium sponsored tasks, giving reliable contributors something meaningful to work toward — without turning earnings into a game. No fake point ladders, no penny grind, no sketchy promises.
 
-🌐 **Marketing:** [EarnStack.ca](https://EarnStack.ca) (Namecheap, WordPress)  
-📱 **App:** [app.earnstack.ca](https://app.earnstack.ca) (Cloudflare Pages)  
-⚙️ **API:** Zo-hosted backend (always-on via Cloudflare Pages proxy)
+🌐 **Live:** [EarnStack.ca](https://EarnStack.ca)
 
 ---
 
-## 🏗️ Deployment Architecture (2026-07-11 Pivot)
-
-| Layer | Host | Domain |
-|---|---|---|
-| Marketing site | Namecheap (WordPress) | earnstack.ca |
-| App frontend | **Cloudflare Pages** | app.earnstack.ca |
-| API backend | Zo | proxied via CF Pages Functions |
-| Database | SQLite (Zo filesystem) | — |
-
-**Why the pivot:** Zo Free plan sleeps after inactivity. Zo Free plan allows 1 custom domain — but it's locked to earnstack.ca which is on Namecheap. Splitting to Cloudflare Pages gives the app subdomain `app.earnstack.ca` with 24/7 uptime on CF's CDN, while the backend stays on Zo behind a CF Pages Function proxy that keeps the backend warm.
-
-### How it works
-
-1. **Cloudflare Pages** serves the Vite-built React frontend from `frontend/dist/`
-2. **Pages Functions** (`functions/api/[[path]].ts`) proxies `/api/*` requests to the Zo backend
-3. The Function has a **wake-retry** — if Zo is asleep the first response is a 503 sleep page, the Function retries 3× over 6s to wake it
-4. Backend processes postbacks, auth, earnings — same code, same DB
-
----
-
-## 🎯 Brand Position
+## Brand Position
 
 - **Canada-first** — built for Canadians, with local language, payout rules, and compliance in mind
 - **Trust-first** — transparent payout ranges, review timelines, and eligibility rules shown upfront
@@ -40,7 +18,7 @@ EarnStack is a Canada-first micro-task marketplace where verified users complete
 
 ---
 
-## 📦 Task Tiers
+## Task Tiers
 
 EarnStack uses two distinct task tiers. Together they give the feed consistent volume while rewarding reliable contributors with access to higher-value work.
 
@@ -76,7 +54,7 @@ Each premium task card also shows:
 
 ---
 
-## 🏅 Reliability Access Model
+## Reliability Access Model
 
 EarnStack rewards consistency without streaks, spins, or point ladders. Status comes from approved work, a clean review history, and recent participation — giving users something real to work toward and feel proud of.
 
@@ -118,35 +96,17 @@ Rule structure:
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
-```
+```text
 earn-stack-app/
 ├── frontend/                  # Vite + TypeScript React + Tailwind CSS
 │   ├── src/
 │   │   ├── components/        # Shared UI components
-│   │   │   ├── BottomNav.tsx  # Mobile tab bar (Tasks|Surveys|Rewards|Earnings|Cash Out)
-│   │   │   ├── Navbar.tsx     # Desktop navigation + auth-aware links
-│   │   │   └── theme-provider.tsx  # Dark/light theme provider
 │   │   ├── pages/             # Route-level page components
-│   │   │   ├── Home.tsx       # Trust-first landing page
-│   │   │   ├── Register.tsx   # Email/name/password signup
-│   │   │   ├── Login.tsx      # Email/login sign-in
-│   │   │   ├── Verify.tsx     # Email OTP verification gate
-│   │   │   ├── TaskFeed.tsx   # Standard + premium task feed
-│   │   │   ├── TaskComplete.tsx # Proof submission per task
-│   │   │   ├── Surveys.tsx    # TheoremReach survey wall embed
-│   │   │   ├── Rewards.tsx    # Canadian rewards stacking guide
-│   │   │   ├── Earnings.tsx   # Pending, available, lifetime ledger
-│   │   │   ├── Payout.tsx     # PayPal cashout (C min)
-│   │   │   └── Admin.tsx      # Task CRUD, completion review, payout approval
-│   │   ├── types/index.ts     # TypeScript interfaces (User, Task, etc.)
-│   │   ├── utils/
-│   │   │   ├── api.ts         # Client-side fetch wrapper with auth header
-│   │   │   ├── auth.ts        # Token management helpers
-│   │   │   ├── utils.ts       # General helpers
-│   │   │   └── zo-theme.ts    # Zo theming bridge
-│   │   ├── App.tsx            # React Router — all page routes defined here
+│   │   ├── types/             # TypeScript interfaces
+│   │   ├── utils/             # API wrapper, auth helpers, general utilities
+│   │   ├── App.tsx            # React Router routes
 │   │   └── main.tsx           # React entry point
 │   ├── tailwind.config.ts
 │   ├── vite.config.ts
@@ -155,54 +115,40 @@ earn-stack-app/
 ├── backend/                   # Hono (Bun) REST API
 │   ├── src/
 │   │   ├── index.ts           # Hono app entry, CORS, route mounting
-│   │   ├── routes/
-│   │   │   ├── auth.ts        # Register, login, me
-│   │   │   ├── tasks.ts       # Feed (tier-gated), detail, submission, status
-│   │   │   ├── earnings.ts    # Ledger — manual + sponsor earnings combined
-│   │   │   ├── payouts.ts     # Payout request, history (includes sponsor balance)
-│   │   │   ├── postback.ts    # TheoremReach + AdGate postback handlers + config
-│   │   │   ├── verify.ts      # Email OTP verification (Resend API)
-│   │   │   ├── adgate.ts      # AdGate offer feed sync + cache
-│   │   │   └── admin.ts       # Admin: task CRUD, completion review, payout approval
-│   │   ├── middleware/
-│   │   │   ├── auth.ts        # JWT + admin middleware
-│   │   │   ├── verified.ts    # Email verification gate
-│   │   │   ├── contributor.ts # Level system, decay, reinstatement
-│   │   │   └── fraud.ts       # Velocity limits, device checks
-│   │   ├── db/
-│   │   │   └── schema.ts      # SQLite schema, migration, seed data
-│   │   └── lib/
-│   │       ├── jwt.ts         # JWT create/verify, bcrypt
-│   │       ├── email.ts       # Resend email sender
-│   │       └── paypal.ts      # PayPal Payouts API client
+│   │   ├── routes/            # Auth, tasks, earnings, payouts, postbacks, admin
+│   │   ├── middleware/        # Auth, verified gate, contributor rules, fraud controls
+│   │   ├── db/                # Schema, migrations, seed logic
+│   │   └── lib/               # JWT, email, PayPal helpers
 │   └── package.json
 │
 ├── data/
-│   └── earnstack.db           # SQLite database (auto-created)
-├── package.json               # Root deps (Bun workspace)
-├── index.tsx                  # Entry — re-exports backend/src/index.ts
-├── zosite.json                # Zo Sites deployment config
-└── README.md
+│   └── earnstack.db           # SQLite database (local dev or mounted persistent volume)
+├── package.json               # Root workspace deps
+├── Procfile                   # Railway process entry
+├── README.md
+└── .env.example               # Shared environment variable reference
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Frontend | TypeScript React 18 + Vite + Tailwind CSS |
 | Backend | Hono on Bun |
-| Database | PostgreSQL (or SQLite for local dev) |
-| Auth | JWT (email/password + phone verification gate) |
-| Hosting | Zo Sites → EarnStack.ca |
+| Database | PostgreSQL (future) or SQLite for MVP / local dev |
+| Auth | JWT (email/password + verification gate) |
+| Frontend Hosting | Vercel |
+| Backend Hosting | Railway |
 | Payouts | PayPal Payouts API |
 | Offer Walls | TheoremReach, AdGate Media (postback integration) |
 | PWA | Web App Manifest + Service Worker |
+| Coding Support | Zo used as a coding assistant only |
 
 ---
 
-## 🎨 Design System
+## Design System
 
 ### Brand Colors
 
@@ -233,9 +179,9 @@ earn-stack-app/
 
 ---
 
-## 📱 Core Screens
+## Core Screens
 
-1. **Landing** — trust-first hero, Canada-only messaging, waitlist/signup CTA
+1. **Landing** — trust-first hero, Canada-only messaging, signup CTA
 2. **Task Feed** — standard and premium task filters, payout, effort, and deadline visible
 3. **Surveys** — TheoremReach offer wall embed (standard task source)
 4. **Task Detail** — instructions, proof submission, eligibility, and review timing
@@ -246,7 +192,7 @@ earn-stack-app/
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Auth
 - `POST /api/auth/register` — register with email + password
@@ -283,7 +229,7 @@ earn-stack-app/
 
 ---
 
-## 💾 Database Schema
+## Database Schema
 
 ### Users
 ```ts
@@ -292,9 +238,9 @@ earn-stack-app/
   email: string,
   password_hash: string,
   province: string,
-  verified: boolean,                    // unlocks task feed
+  verified: boolean,
   role: 'user' | 'admin',
-  device_fingerprint: string,           // fraud prevention
+  device_fingerprint: string,
   contributor_level: 'new' | 'reliable' | 'verified_contributor',
   reliability_score: number,
   last_approved_at?: DateTime,
@@ -312,8 +258,8 @@ earn-stack-app/
   tier: 'standard' | 'premium',
   description: string,
   effort_minutes: number,
-  payout_min: number,                   // CAD
-  payout_max: number,                   // CAD
+  payout_min: number,
+  payout_max: number,
   expires_at: DateTime,
   max_completions: number,
   active: boolean,
@@ -327,9 +273,9 @@ earn-stack-app/
   id: UUID,
   user_id: UUID,
   task_id: UUID,
-  proof: string,                        // URL or text
+  proof: string,
   status: 'pending' | 'approved' | 'rejected',
-  payout_amount: number,                // CAD, set on approval
+  payout_amount: number,
   submitted_at: DateTime,
   reviewed_at: DateTime
 }
@@ -341,7 +287,7 @@ earn-stack-app/
   id: UUID,
   user_id: UUID,
   paypal_email: string,
-  amount: number,                       // CAD
+  amount: number,
   status: 'pending' | 'sent' | 'failed',
   requested_at: DateTime,
   processed_at: DateTime
@@ -353,7 +299,7 @@ earn-stack-app/
 {
   network: 'theoremreach' | 'adgate',
   active: boolean,
-  user_share_pct: number,               // default 70
+  user_share_pct: number,
   api_key?: string
 }
 ```
@@ -364,8 +310,8 @@ earn-stack-app/
   id: UUID,
   user_id: UUID,
   network: string,
-  transaction_id: string,               // dedup key
-  amount: number,                       // CAD after share %
+  transaction_id: string,
+  amount: number,
   status: 'cleared' | 'reversed',
   created_at: DateTime
 }
@@ -376,7 +322,7 @@ earn-stack-app/
 {
   id: UUID,
   network: string,
-  raw_payload: string,                  // full audit trail
+  raw_payload: string,
   processed: boolean,
   created_at: DateTime
 }
@@ -384,7 +330,7 @@ earn-stack-app/
 
 ---
 
-## 🔄 Sponsor Postback Flow
+## Sponsor Postback Flow
 
 1. User opens the Surveys page → TheoremReach survey wall loads
 2. User completes a survey → TheoremReach sends GET postback to `/api/postback/theoremreach`
@@ -397,7 +343,7 @@ earn-stack-app/
 
 ---
 
-## 🪙 Virtual Currency (Credits)
+## Virtual Currency (Credits)
 
 Offer wall networks (TheoremReach, AdGate) require a **virtual currency (VC)** configuration to operate. EarnStack uses **Credits** as its internal VC — a transparent in-app accounting unit that maps directly to CAD.
 
@@ -428,29 +374,16 @@ Offer wall networks (TheoremReach, AdGate) require a **virtual currency (VC)** c
 
 - Always show both Credits **and** the CAD equivalent side by side: `125 Credits ($1.25 CAD)`
 - Never show Credits as a standalone number without the CAD value nearby
-- Use these states throughout the Earnings Ledger and Payout flow:
+- States used throughout the Earnings Ledger and Payout flow:
   - **Pending review** — Credits held, awaiting validation
   - **Available** — Credits cleared, ready to cash out
   - **Cashed out** — Credits redeemed, PayPal transfer sent
 - Minimum cashout label: "Cash out when you reach $5 CAD (500 Credits)"
 - Do not use language like "earn coins", "collect rewards", or "spend credits" — Credits are compensation for completed work, not a game currency
 
-### Why Credits Exist
-
-Offer wall networks are built around virtual currency APIs — they credit users in VC, not directly in cash. EarnStack uses Credits as the required in-app accounting layer that satisfies network requirements while keeping the real value (CAD) transparent to users at all times.
-
-Credits are not a loyalty program, a gamification mechanic, or a points ladder. They are an internal unit that represents a defined share of the CAD paid by sponsors — shown clearly and converted honestly.
-
-### App Store / Play Store Notes
-
-- Credits are non-purchasable by users. There is no in-app purchase of Credits for cash.
-- Credits are earned only through verified task completions and sponsor postbacks.
-- Credits are not directly redeemable for instant cash — a review hold and minimum threshold apply.
-- If EarnStack is distributed through the App Store or Play Store in the future, the Credits system and payout flow must comply with Apple and Google billing policies in force at time of submission. Review store guidelines before adding any purchase or redemption flow.
-
 ---
 
-## 🔐 Security & Anti-Fraud
+## Security & Anti-Fraud
 
 - ✅ Passwords hashed with bcrypt
 - ✅ JWT authentication with expiry
@@ -466,63 +399,131 @@ Credits are not a loyalty program, a gamification mechanic, or a points ladder. 
 
 ---
 
-## 🚀 Deployment (Zo Sites)
+## Hosting
 
-This app is deployed via [Zo Sites](https://zo.computer) at [EarnStack.ca](https://EarnStack.ca).
+EarnStack is no longer deployed on Zo Sites. Zo now supports the project as a **coding assistant only**.
 
-```json
-// zosite.json
-{
-  "name": "earn-stack-app",
-  "domain": "EarnStack.ca",
-  "build": {
-    "command": "bun run build",
-    "output": "frontend/dist"
-  },
-  "services": [
-    {
-      "name": "backend",
-      "command": "bun run backend/src/index.ts",
-      "port": 3001
-    }
-  ]
-}
-```
+### Frontend — Vercel
 
-### Local Dev
-```bash
-# Install deps
-cd frontend && bun install
-cd ../backend && bun install
+The React app is hosted on **Vercel**.
 
-# Run frontend
-cd frontend && bun run dev
+- Connect the GitHub repository (`Lupeys/Earn-Stack-App`) to Vercel
+- Root directory: `frontend`
+- Framework preset: **Vite**
+- Build command: `bun run build`
+- Output directory: `dist`
+- Set `VITE_API_URL` in Vercel project environment variables
+- Custom domain: `EarnStack.ca` (or `app.earnstack.ca` if splitting from marketing site)
 
-# Run backend
-cd backend && bun run dev
+### Backend — Railway
+
+The Hono + Bun API is hosted on **Railway**.
+
+- Deploy the repository to Railway
+- Railway runs the backend via the root `Procfile`
+- Attach persistent storage volume if SQLite stays in production
+- Add all backend environment variables in Railway project settings
+- Backend URL used as `VITE_API_URL` in the Vercel frontend config
+
+### Domain
+
+- `EarnStack.ca` → Vercel frontend
+- Backend accessible via Railway service URL or `api.earnstack.ca` subdomain
+- HTTPS provided automatically by both platforms
+
+---
+
+## Procfile
+
+```text
+web: cd backend && bun run src/index.ts
 ```
 
 ---
 
-## 📲 PWA Support
+## Environment Variables
+
+`.env.example`:
+
+```bash
+# Frontend (set in Vercel project settings)
+VITE_API_URL=https://api.earnstack.ca
+
+# Backend (set in Railway project settings)
+PORT=3001
+JWT_SECRET=change_me
+RESEND_API_KEY=change_me
+PAYPAL_CLIENT_ID=change_me
+PAYPAL_CLIENT_SECRET=change_me
+PAYPAL_ENV=sandbox
+DATABASE_URL=./data/earnstack.db
+THEOREMREACH_API_KEY=change_me
+ADGATE_API_KEY=change_me
+APP_ORIGIN=https://earnstack.ca
+```
+
+---
+
+## Deployment
+
+### Frontend (Vercel)
+
+```bash
+cd frontend
+bun install
+bun run build
+```
+
+Vercel project settings:
+- Framework preset: **Vite**
+- Root directory: `frontend`
+- Build command: `bun run build`
+- Output directory: `dist`
+
+### Backend (Railway)
+
+```bash
+cd backend
+bun install
+bun run src/index.ts
+```
+
+Railway setup:
+- Uses root `Procfile` to start the backend
+- Attach persistent storage if keeping SQLite in production
+- Move to PostgreSQL once live traffic becomes steady
+
+### Local Development
+
+```bash
+# Backend
+cd backend && bun --hot src/index.ts
+
+# Frontend
+cd frontend && bun run dev
+```
+
+---
+
+## PWA Support
 
 EarnStack is a Progressive Web App — users on mobile can install it directly from `EarnStack.ca` without the App Store.
 
 - `public/manifest.json` — app name, icons, theme color
 - `public/sw.js` — service worker for offline shell
-- HTTPS via Zo Sites + custom domain
+- HTTPS via Vercel + custom domain
 
 Future: Capacitor wrapper for App Store + Play Store submission once MVP is validated.
 
 ---
 
-## 📋 MVP Launch Checklist
+## MVP Launch Checklist
 
 - [ ] Frontend scaffold (Vite + React + Tailwind)
 - [ ] Backend scaffold (Hono + Bun)
 - [ ] Database schema + migrations
 - [ ] Auth (register, login, verify)
-- [ ] Landing page (trust-first, waitlist)
+- [ ] Landing page (trust-first)
 - [ ] Task feed with standard and premium task tiers
 - [ ] Task submission + proof upload
 - [ ] Earnings ledger (manual + sponsor earnings)
@@ -531,32 +532,32 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 - [ ] Admin panel (review queue, payout approvals)
 - [ ] Anti-fraud middleware
 - [ ] PWA manifest + service worker
-- [ ] Deploy to Zo Sites → EarnStack.ca
+- [ ] Deploy frontend to Vercel
+- [ ] Deploy backend to Railway
 - [ ] TheoremReach postback integration
 - [ ] AdGate postback integration
-- [ ] CPAGrip postback integration
 - [ ] PayPal Payouts API integration
 - [ ] Beta user testing (Canadian users only)
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
-### v1 — MVP (Now → September 2026)
-- Core task feed with standard (offer wall) and premium (curated sponsor) task tiers
-- TheoremReach + AdGate postback integration ✅
+### v1 — MVP
+- Core task feed with standard offer wall and premium curated sponsor tasks
+- TheoremReach + AdGate postback integration
 - Reliability-based contributor access model
 - Inactivity decay with faster reinstatement path
 - Manual admin review for premium tasks
-- PayPal Payouts
+- PayPal payouts
 - PWA on EarnStack.ca
 
 ### v2 — Growth
-- Capacitor iOS + Android builds → App Store / Play Store
+- Capacitor iOS + Android builds
 - Automated payout processing
-- Sponsor self-serve dashboard (premium task creation + budget funding)
+- Sponsor self-serve dashboard
 - Reliability progress UI and contributor recovery logic
-- AdGate offer feed — scheduled pull + task display
+- AdGate offer feed scheduled sync
 - Referral program
 
 ### v3 — Scale
@@ -567,7 +568,7 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 
 ---
 
-## ⚖️ Compliance & Disclosures
+## Compliance & Disclosures
 
 **Not a lottery or gambling product.** Tasks are sponsor-funded actions; payouts are compensation for completed work, not prizes.
 
@@ -579,17 +580,7 @@ Future: Capacitor wrapper for App Store + Play Store submission once MVP is vali
 
 ---
 
-## 📄 License
-
-MIT License © 2026 Erik Contador
-
----
-
-**Built for Canadians who want real side cash — clearly earned.**
-
----
-
-### Current State (2026-07-04)
+## Current State (July 2026)
 
 **✅ Working:**
 - Auth (register, login, JWT) — end-to-end tested
@@ -597,7 +588,7 @@ MIT License © 2026 Erik Contador
 - Task feed — tier-gated (standard always visible, premium locked by contributor level)
 - Task detail, submission with proof upload
 - Earnings ledger — manual tasks + sponsor earnings combined
-- Payout request flow (C$5 minimum withdrawal)
+- Payout request flow ($5 CAD minimum withdrawal)
 - Admin panel (task CRUD, completion review, payout approval)
 - Anti-fraud middleware (velocity, device, IP checks)
 - PayPal Payouts sandbox — tested ✅
@@ -608,12 +599,11 @@ MIT License © 2026 Erik Contador
 - AdGate offer feed sync — scheduled pull → upsert into tasks as standard tier
 - User share: 70% (configurable per-network via `/api/postback/config`)
 
-**🆕 Contributor Levels (v0.4) — feature/rewards-stacking:**
+**🆕 Contributor Levels (v0.4):**
 - Three levels: New → Reliable → Verified Contributor
 - First-time thresholds: 5 approved → Reliable, 15 → Verified Contributor
 - Reinstatement is faster: 2 approved → Reliable, 5 → Verified Contributor
 - Inactivity decay after 60 days — Verified → Reliable, Reliable → New
-- Level evaluated on every completion approval; decay checked on every request
 - Task feed gating — premium tasks show as locked with reason for under-level users
 
 **⏳ Pending:**
@@ -623,26 +613,18 @@ MIT License © 2026 Erik Contador
 - Sponsor self-serve dashboard (v2)
 - Phone verification (in addition to email)
 
-**🚫 Removed (2026-07-04):**
-- n8n service — removed to free up the single Free plan HTTP slot
-- Duplicate earn-stack-app service — cleaned up
+**🚫 Removed:**
+- Zo Sites deployment — replaced by Vercel (frontend) + Railway (backend)
+- `zosite.json` — no longer needed
+- `index.tsx` root entry — no longer needed (Railway runs `backend/src/index.ts` via Procfile)
+- `frontend/src/utils/zo-theme.ts` — Zo theming bridge removed
 
-### Development
+---
 
-```bash
-# Start backend
-cd backend && bun --hot src/index.ts
+## License
 
-# Start frontend
-cd frontend && bun run dev
+MIT License © 2026 Erik Contador
 
-# Production build (Zo Sites)
-bun run prod
-```
+---
 
-### Deployment
-
-EarnStack runs as a Zo Site at `file 'earn-stack-app'`, accessible at `https://earn-stack-app-lupeys.zo.computer` (private — owner sign-in required).
-
-A single Bun process serves the Hono API and Vite frontend together. The `backend/` / `frontend/` split is for code organization — the live deployment uses root `package.json`.
-
+**Built for Canadians who want real side cash — clearly earned.**
