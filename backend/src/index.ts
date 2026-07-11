@@ -12,7 +12,7 @@ import postback from "./routes/postback";
 
 const app = new Hono();
 
-app.use("*", cors({ origin: ["https://earnstack.ca", "http://localhost:3000", "http://localhost:5173"] }));
+app.use("*", cors({ origin: [process.env.APP_ORIGIN || "https://app.earnstack.ca", "http://localhost:3000", "http://localhost:5173"] }));
 app.use("*", logger());
 
 app.get("/api/health", (c) => c.json({ status: "ok", app: "EarnStack", version: "0.2.0" }));
