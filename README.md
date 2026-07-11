@@ -2,9 +2,31 @@
 
 > **Real side cash for Canadians. Verified tasks. Transparent payouts. No hype.**
 
-EarnStack is a Canada-first micro-task marketplace where verified users complete sponsor-funded tasks and earn real cash, paid out via PayPal at a $5 minimum. The platform combines a broad wall of standard verified tasks with premium sponsored tasks, giving reliable contributors something meaningful to work toward — without turning earnings into a game. No fake point ladders, no penny grind, no sketchy promises.
+EarnStack is a Canada-first micro-task marketplace where verified users complete sponsor-funded tasks and earn real cash, paid out via PayPal at a $5 minimum.
 
-🌐 **Live:** [EarnStack.ca](https://EarnStack.ca)
+🌐 **Marketing:** [EarnStack.ca](https://EarnStack.ca) (Namecheap, WordPress)  
+📱 **App:** [app.earnstack.ca](https://app.earnstack.ca) (Cloudflare Pages)  
+⚙️ **API:** Zo-hosted backend (always-on via Cloudflare Pages proxy)
+
+---
+
+## 🏗️ Deployment Architecture (2026-07-11 Pivot)
+
+| Layer | Host | Domain |
+|---|---|---|
+| Marketing site | Namecheap (WordPress) | earnstack.ca |
+| App frontend | **Cloudflare Pages** | app.earnstack.ca |
+| API backend | Zo | proxied via CF Pages Functions |
+| Database | SQLite (Zo filesystem) | — |
+
+**Why the pivot:** Zo Free plan sleeps after inactivity. Zo Free plan allows 1 custom domain — but it's locked to earnstack.ca which is on Namecheap. Splitting to Cloudflare Pages gives the app subdomain `app.earnstack.ca` with 24/7 uptime on CF's CDN, while the backend stays on Zo behind a CF Pages Function proxy that keeps the backend warm.
+
+### How it works
+
+1. **Cloudflare Pages** serves the Vite-built React frontend from `frontend/dist/`
+2. **Pages Functions** (`functions/api/[[path]].ts`) proxies `/api/*` requests to the Zo backend
+3. The Function has a **wake-retry** — if Zo is asleep the first response is a 503 sleep page, the Function retries 3× over 6s to wake it
+4. Backend processes postbacks, auth, earnings — same code, same DB
 
 ---
 
