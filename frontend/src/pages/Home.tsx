@@ -46,12 +46,12 @@ export default function Home() {
           Canada only &nbsp;&middot;&nbsp; PayPal payouts &nbsp;&middot;&nbsp; $5 minimum
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-5 max-w-2xl">
-          Complete verified tasks.
+          Browse partner offers.
           <br />
           <span className="text-[var(--primary)]">Get paid in real cash.</span>
         </h1>
         <p className="text-lg text-[var(--foreground-muted)] max-w-lg mb-10 leading-relaxed">
-          Short sponsor-funded tasks for verified Canadians. Clear rates, manual review, PayPal cashout. No points. No hype.
+          Verified Canadians complete partner offers and earn real CAD. Transparent payouts, PayPal cashout. No points. No hype.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           {loggedIn ? (
@@ -79,9 +79,21 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-5 sm:px-8 py-14">
           <p className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-widest mb-6">How it works</p>
           <div className="grid sm:grid-cols-3 gap-4">
-            <StepCard number="1" title="Verify your account" description="Confirm your identity once. Verification ensures real Canadians earn — and keeps the platform clean." />
-            <StepCard number="2" title="Complete verified tasks" description="Browse available tasks, submit proof of completion, and wait for manual review." />
-            <StepCard number="3" title="Cash out via PayPal" description="Once your balance hits $5 CAD, request a payout. Reviewed and sent within 1–2 business days." />
+            <StepCard
+              number="1"
+              title="Verify your account"
+              description="Confirm your identity once. Verification ensures real Canadians earn — and keeps the platform fair."
+            />
+            <StepCard
+              number="2"
+              title="Complete partner offers"
+              description="Browse available offers from our partners. Complete them on your own schedule — no proof submission needed."
+            />
+            <StepCard
+              number="3"
+              title="Cash out via PayPal"
+              description="Once your balance hits $5 CAD, request a payout. Reviewed and sent within 1–2 business days."
+            />
           </div>
         </div>
       </section>
@@ -90,10 +102,26 @@ export default function Home() {
       <section className="max-w-4xl mx-auto px-5 sm:px-8 py-14">
         <p className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-widest mb-6">Built for trust</p>
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <TrustCard icon="shield" title="Verified users only" body="Every user verifies once before accessing offers. Real Canadians, not bots." />
-          <TrustCard icon="dollar" title="Transparent payouts" body="Payout amounts shown up front. No hidden fees. Cash out at $5 CAD via PayPal." />
-          <TrustCard icon="lock" title="Fraud-protected" body="Device checks, velocity limits, and manual payout review keep the platform clean." />
-          <TrustCard icon="check" title="No fake urgency" body="No spin wheels, countdown timers, or inflated earnings claims. Honest pay for real work." />
+          <TrustCard
+            icon="shield"
+            title="Verified users only"
+            body="Every user verifies once before accessing offers. Real Canadians, not bots."
+          />
+          <TrustCard
+            icon="dollar"
+            title="Transparent payouts"
+            body="Payout amounts are shown up front. No hidden fees. Cash out at $5 CAD via PayPal."
+          />
+          <TrustCard
+            icon="lock"
+            title="Fraud-protected"
+            body="Device checks, velocity limits, and manual payout review keep the platform clean."
+          />
+          <TrustCard
+            icon="check"
+            title="No fake urgency"
+            body="No spin wheels, countdown timers, or inflated earnings claims. Honest pay for real work."
+          />
         </div>
       </section>
 
@@ -110,11 +138,9 @@ export default function Home() {
   );
 }
 
-// Step card: prominent number pill + accent left border + indented description
 function StepCard({ number, title, description }: { number: string; title: string; description: string }) {
   return (
     <div className="relative pl-5 pr-5 pt-5 pb-5 rounded-xl border border-[var(--border)] bg-[var(--background)] overflow-hidden">
-      {/* Accent left bar */}
       <div className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full bg-[var(--primary)]/40" aria-hidden="true" />
       <div className="flex items-center gap-3 mb-3">
         <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white text-sm font-bold flex-shrink-0 shadow-sm">
@@ -136,7 +162,6 @@ const TRUST_ICONS: Record<TrustIconName, ReactElement> = {
   check: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>),
 };
 
-// Trust card: icon + title inline on first row, body below
 function TrustCard({ icon, title, body }: { icon: TrustIconName; title: string; body: string }) {
   return (
     <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
