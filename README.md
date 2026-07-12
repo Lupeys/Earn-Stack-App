@@ -4,7 +4,7 @@
 
 EarnStack is a Canada-first micro-task marketplace where verified users complete sponsor-funded tasks and earn real cash, paid out via PayPal at a $5 minimum. The platform combines a broad wall of standard verified tasks with premium sponsored tasks, giving reliable contributors something meaningful to work toward — without turning earnings into a game. No fake point ladders, no penny grind, no sketchy promises.
 
-🌐 **Live:** [EarnStack.ca](https://EarnStack.ca)
+🌐 **Live:** [app.EarnStack.ca](https://app.EarnStack.ca)
 
 ---
 
