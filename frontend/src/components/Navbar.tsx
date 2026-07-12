@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getUser, logout } from "../utils/auth";
-import { useState } from "react";
+import type { UserData } from "../utils/auth";
+import { useState, useEffect } from "react";
 
 const PAGE_TITLES: Record<string, string> = {
   "/tasks":    "Tasks",
@@ -14,8 +15,12 @@ const PAGE_TITLES: Record<string, string> = {
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const user = getUser();
+  const [user, setUser] = useState<UserData | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    getUser().then(setUser);
+  }, []);
 
   const pageTitle = PAGE_TITLES[location.pathname] ?? "EarnStack";
 
@@ -42,14 +47,13 @@ export default function Navbar() {
               Earn<span className="text-[var(--primary)] font-bold">Stack</span>
             </span>
           </Link>
-          {/* Divider + page title on mobile */}
           <span className="text-[var(--border)] select-none hidden xs:block" aria-hidden="true">/</span>
           <span className="text-sm font-semibold text-[var(--foreground)] sm:hidden">{pageTitle}</span>
         </div>
 
         {/* Right side */}
         <div className="flex items-center gap-1">
-          {user?.role === "admin" && (
+          {(user as any)?.role === "admin" && (
             <Link
               to="/admin"
               className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--warning)] bg-[var(--warning-bg)] border border-[var(--warning)]/20 hover:bg-[var(--warning-bg)] transition-colors"
