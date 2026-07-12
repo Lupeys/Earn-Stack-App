@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { isLoggedIn } from "../utils/auth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 
 export default function Home() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -191,7 +191,7 @@ function StepCard({ number, title, description }: { number: string; title: strin
 
 type TrustIconName = "shield" | "dollar" | "lock" | "check";
 
-const TRUST_ICONS: Record<TrustIconName, JSX.Element> = {
+const TRUST_ICONS: Record<TrustIconName, ReactElement> = {
   shield: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>

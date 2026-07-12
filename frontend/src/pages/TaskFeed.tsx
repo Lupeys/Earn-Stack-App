@@ -2,17 +2,18 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchApi } from "../utils/api";
 import Navbar from "@/components/Navbar";
-import type { Task } from "@/types";
 
 const TASK_TYPE_LABEL: Record<string, string> = {
   survey: "Survey",
   app_test: "App test",
   sponsor_action: "Sponsor action",
+  promo_action: "Promo action",
   offer: "Offer",
+  other: "Task",
 };
 
 export default function TaskFeed() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -21,20 +22,20 @@ export default function TaskFeed() {
     fetchApi("/api/tasks")
       .then((res) => {
         if (res.status === 403) {
-          return res.json().then((data) => {
+          return res.json().then((data: any) => {
             if (data.code === "UNVERIFIED") {
               navigate("/verify");
-              return;
+              return null;
             }
             throw new Error(data.code);
           });
         }
         return res.json();
       })
-      .then((data) => data && setTasks(data.tasks))
+      .then((data: any) => data && setTasks(data.tasks ?? data))
       .catch(() => setError("Failed to load tasks"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-20 sm:pb-0">
@@ -102,14 +103,15 @@ export default function TaskFeed() {
 
 function TaskCard({ task }: { task: any }) {
   const isLocked = task.locked === true;
-  const creditsAmount = Math.round(task.payout_cad * 100);
+  const payoutCad: number = task.payout_cad ?? 0;
+  const creditsAmount = Math.round(payoutCad * 100);
 
   return (
     <Link
       to={isLocked ? "#" : `/tasks/${task.id}`}
       aria-disabled={isLocked}
       className={[
-        "flex items-start justify-between gap-4 p-4 sm:p-5 rounded-xl border bg-[var(--surface)] transition-all group",
+        "flex items-start justify-between gap-4 p-4 sm:p-5 rounded-xl border bg-[var(--surface)] transition-all",
         isLocked
           ? "border-[var(--border)] opacity-60 cursor-not-allowed"
           : "border-[var(--border)] hover:border-[var(--primary)]/50 hover:shadow-sm",
@@ -117,10 +119,7 @@ function TaskCard({ task }: { task: any }) {
       onClick={isLocked ? (e) => e.preventDefault() : undefined}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3 mb-1.5">
-          <h3 className="font-semibold text-sm leading-snug">{task.title}</h3>
-          {/* Payout badge — top right on mobile sits here via flex order */}
-        </div>
+        <h3 className="font-semibold text-sm leading-snug mb-1.5">{task.title}</h3>
         <p className="text-sm text-[var(--foreground-muted)] leading-relaxed line-clamp-2 mb-3">
           {task.description}
         </p>
@@ -149,12 +148,11 @@ function TaskCard({ task }: { task: any }) {
         </div>
       </div>
 
-      {/* Payout */}
       <div className="flex-shrink-0 text-right pt-0.5">
         <span className="block text-[var(--success)] font-bold text-lg tabular-nums leading-tight">
-          ${task.payout_cad.toFixed(2)}
+          ${payoutCad.toFixed(2)}
         </span>
-        <span className="block text-xs text-[var(--foreground-faint)] mt-0.5">
+        <span className="block text-xs text-[var(--foreground-faint)] mt-0.5 tabular-nums">
           {creditsAmount} Credits
         </span>
       </div>
