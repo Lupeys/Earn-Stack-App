@@ -4,6 +4,13 @@ import { fetchApi } from "../utils/api";
 import Navbar from "@/components/Navbar";
 import type { Task } from "@/types";
 
+const TASK_TYPE_LABEL: Record<string, string> = {
+  survey: "Survey",
+  app_test: "App test",
+  sponsor_action: "Sponsor action",
+  offer: "Offer",
+};
+
 export default function TaskFeed() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,13 +40,31 @@ export default function TaskFeed() {
     <div className="min-h-screen bg-[var(--background)] pb-20 sm:pb-0">
       <Navbar />
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        <h1 className="text-xl font-bold mb-1">Available Tasks</h1>
-        <p className="text-sm text-[var(--foreground-muted)] mb-6">Complete tasks, submit proof, earn real CAD.</p>
+        <div className="mb-6">
+          <h1 className="text-xl font-bold">Available Tasks</h1>
+          <p className="text-sm text-[var(--foreground-muted)] mt-0.5">Complete tasks, submit proof, earn real CAD.</p>
+        </div>
 
         {loading && (
           <div className="space-y-3">
-            {[1,2,3].map(i => (
-              <div key={i} className="h-24 rounded-xl bg-[var(--secondary)] animate-pulse" />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] animate-pulse">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-2/3 rounded bg-[var(--secondary)]" />
+                    <div className="h-3 w-full rounded bg-[var(--secondary)]" />
+                    <div className="h-3 w-4/5 rounded bg-[var(--secondary)]" />
+                    <div className="flex gap-2 pt-1">
+                      <div className="h-5 w-16 rounded-full bg-[var(--secondary)]" />
+                      <div className="h-5 w-12 rounded-full bg-[var(--secondary)]" />
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 space-y-1.5 pt-0.5">
+                    <div className="h-6 w-14 rounded bg-[var(--secondary)]" />
+                    <div className="h-3 w-8 rounded bg-[var(--secondary)] ml-auto" />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -53,42 +78,86 @@ export default function TaskFeed() {
         {!loading && !error && tasks.length === 0 && (
           <div className="text-center py-16">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--secondary)] mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--foreground-faint)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--foreground-faint)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="3" y="3" width="18" height="18" rx="2"/>
                 <path d="M9 12h6M12 9v6"/>
               </svg>
             </div>
-            <p className="font-medium text-[var(--foreground)]">No tasks right now</p>
-            <p className="text-sm text-[var(--foreground-muted)] mt-1">New tasks are added regularly — check back soon.</p>
+            <p className="font-semibold text-[var(--foreground)]">No tasks right now</p>
+            <p className="text-sm text-[var(--foreground-muted)] mt-1 max-w-xs mx-auto">
+              New tasks are added regularly — check back soon.
+            </p>
           </div>
         )}
 
         <div className="space-y-3">
           {tasks.map((task: any) => (
-            <Link
-              key={task.id}
-              to={`/tasks/${task.id}`}
-              className="flex items-start justify-between gap-4 p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/40 hover:shadow-sm transition-all"
-            >
-              <div className="min-w-0">
-                <h3 className="font-semibold leading-snug truncate">{task.title}</h3>
-                <p className="text-[var(--foreground-muted)] text-sm mt-1 line-clamp-2 leading-relaxed">{task.description}</p>
-                <div className="flex flex-wrap items-center gap-2 mt-3">
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--foreground-muted)] capitalize">
-                    {task.task_type.replace("_", " ")}
-                  </span>
-                  <span className="text-xs text-[var(--foreground-faint)]">{task.effort_minutes} min</span>
-                  <span className="text-xs text-[var(--foreground-faint)]">{task.current_completions}/{task.max_completions} spots</span>
-                </div>
-              </div>
-              <div className="text-right flex-shrink-0 pt-0.5">
-                <span className="text-[var(--success)] font-bold text-lg">${task.payout_cad.toFixed(2)}</span>
-                <span className="block text-xs text-[var(--foreground-faint)]">CAD</span>
-              </div>
-            </Link>
+            <TaskCard key={task.id} task={task} />
           ))}
         </div>
       </main>
     </div>
+  );
+}
+
+function TaskCard({ task }: { task: any }) {
+  const isLocked = task.locked === true;
+  const creditsAmount = Math.round(task.payout_cad * 100);
+
+  return (
+    <Link
+      to={isLocked ? "#" : `/tasks/${task.id}`}
+      aria-disabled={isLocked}
+      className={[
+        "flex items-start justify-between gap-4 p-4 sm:p-5 rounded-xl border bg-[var(--surface)] transition-all group",
+        isLocked
+          ? "border-[var(--border)] opacity-60 cursor-not-allowed"
+          : "border-[var(--border)] hover:border-[var(--primary)]/50 hover:shadow-sm",
+      ].join(" ")}
+      onClick={isLocked ? (e) => e.preventDefault() : undefined}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3 mb-1.5">
+          <h3 className="font-semibold text-sm leading-snug">{task.title}</h3>
+          {/* Payout badge — top right on mobile sits here via flex order */}
+        </div>
+        <p className="text-sm text-[var(--foreground-muted)] leading-relaxed line-clamp-2 mb-3">
+          {task.description}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {task.task_type && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--foreground-muted)] font-medium">
+              {TASK_TYPE_LABEL[task.task_type] ?? task.task_type}
+            </span>
+          )}
+          {task.effort_minutes && (
+            <span className="text-xs text-[var(--foreground-faint)] flex items-center gap-1">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {task.effort_minutes} min
+            </span>
+          )}
+          {task.current_completions != null && task.max_completions != null && (
+            <span className="text-xs text-[var(--foreground-faint)]">
+              {task.max_completions - task.current_completions} spots left
+            </span>
+          )}
+          {isLocked && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] border border-[var(--warning)]/20 font-medium">
+              {task.lock_reason ?? "Level required"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Payout */}
+      <div className="flex-shrink-0 text-right pt-0.5">
+        <span className="block text-[var(--success)] font-bold text-lg tabular-nums leading-tight">
+          ${task.payout_cad.toFixed(2)}
+        </span>
+        <span className="block text-xs text-[var(--foreground-faint)] mt-0.5">
+          {creditsAmount} Credits
+        </span>
+      </div>
+    </Link>
   );
 }
