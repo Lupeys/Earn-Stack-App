@@ -10,6 +10,8 @@ import Payout from "@/pages/Payout";
 import Admin from "@/pages/Admin";
 import Surveys from "@/pages/Surveys";
 import Rewards from "@/pages/Rewards";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 
 export default function App() {
   return (
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/surveys" element={<Navigate to="/earn" replace />} />
           <Route path="/rewards" element={<Rewards />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
         </Routes>
         <BottomNav />
       </BrowserRouter>
