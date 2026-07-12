@@ -28,17 +28,11 @@ export default function Home() {
           </div>
           <nav className="flex items-center gap-1">
             {loggedIn ? (
-              <Link to="/earn" className="px-4 py-1.5 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-hover)] transition-colors">
-                Open App
-              </Link>
+              <Link to="/earn" className="px-4 py-1.5 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-hover)] transition-colors">Open App</Link>
             ) : (
               <>
-                <Link to="/login" className="px-3 py-1.5 rounded-lg text-sm text-[var(--foreground-muted)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)] transition-colors">
-                  Sign in
-                </Link>
-                <Link to="/register" className="px-4 py-1.5 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-hover)] transition-colors">
-                  Get started
-                </Link>
+                <Link to="/login" className="px-3 py-1.5 rounded-lg text-sm text-[var(--foreground-muted)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)] transition-colors">Sign in</Link>
+                <Link to="/register" className="px-4 py-1.5 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-hover)] transition-colors">Get started</Link>
               </>
             )}
           </nav>
@@ -71,9 +65,7 @@ export default function Home() {
                 Create free account
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </Link>
-              <Link to="/login" className="px-6 py-3 rounded-xl border border-[var(--border)] text-[var(--foreground)] font-medium hover:bg-[var(--secondary)] transition-colors">
-                Sign in
-              </Link>
+              <Link to="/login" className="px-6 py-3 rounded-xl border border-[var(--border)] text-[var(--foreground)] font-medium hover:bg-[var(--secondary)] transition-colors">Sign in</Link>
             </>
           )}
         </div>
@@ -98,10 +90,10 @@ export default function Home() {
       <section className="max-w-4xl mx-auto px-5 sm:px-8 py-14">
         <p className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-widest mb-6">Built for trust</p>
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <TrustCard icon="shield" title="Verified users only" body="Every user verifies their identity before accessing tasks. Sponsors get real humans, not bots." />
-          <TrustCard icon="dollar" title="Transparent payouts" body="Every task shows its payout up front. No hidden fees. Reach $5 CAD and cash out via PayPal." />
-          <TrustCard icon="lock" title="Fraud-protected" body="Device checks, velocity limits, and manual review on every payout keep the platform clean." />
-          <TrustCard icon="check" title="No fake urgency" body="No countdown timers, spin wheels, or exaggerated earnings claims. Honest work, honest pay." />
+          <TrustCard icon="shield" title="Verified users only" body="Every user verifies once before accessing offers. Real Canadians, not bots." />
+          <TrustCard icon="dollar" title="Transparent payouts" body="Payout amounts shown up front. No hidden fees. Cash out at $5 CAD via PayPal." />
+          <TrustCard icon="lock" title="Fraud-protected" body="Device checks, velocity limits, and manual payout review keep the platform clean." />
+          <TrustCard icon="check" title="No fake urgency" body="No spin wheels, countdown timers, or inflated earnings claims. Honest pay for real work." />
         </div>
       </section>
 
@@ -118,11 +110,14 @@ export default function Home() {
   );
 }
 
+// Step card: prominent number pill + accent left border + indented description
 function StepCard({ number, title, description }: { number: string; title: string; description: string }) {
   return (
-    <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--background)] flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)]/15 text-[var(--primary)] text-sm font-bold flex-shrink-0 border border-[var(--primary)]/20">
+    <div className="relative pl-5 pr-5 pt-5 pb-5 rounded-xl border border-[var(--border)] bg-[var(--background)] overflow-hidden">
+      {/* Accent left bar */}
+      <div className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full bg-[var(--primary)]/40" aria-hidden="true" />
+      <div className="flex items-center gap-3 mb-3">
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white text-sm font-bold flex-shrink-0 shadow-sm">
           {number}
         </span>
         <h3 className="font-semibold text-sm leading-snug">{title}</h3>
@@ -141,16 +136,17 @@ const TRUST_ICONS: Record<TrustIconName, ReactElement> = {
   check: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>),
 };
 
+// Trust card: icon + title inline on first row, body below
 function TrustCard({ icon, title, body }: { icon: TrustIconName; title: string; body: string }) {
   return (
-    <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col gap-3">
-      <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] flex-shrink-0">
-        {TRUST_ICONS[icon]}
+    <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+      <div className="flex items-center gap-2 mb-2.5">
+        <div className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] flex-shrink-0">
+          {TRUST_ICONS[icon]}
+        </div>
+        <h3 className="font-semibold text-sm leading-snug">{title}</h3>
       </div>
-      <div>
-        <h3 className="font-semibold text-sm mb-1.5 leading-snug">{title}</h3>
-        <p className="text-xs text-[var(--foreground-muted)] leading-relaxed">{body}</p>
-      </div>
+      <p className="text-xs text-[var(--foreground-muted)] leading-relaxed pl-9">{body}</p>
     </div>
   );
 }
