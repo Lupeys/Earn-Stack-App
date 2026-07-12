@@ -4,7 +4,6 @@ import type { UserData } from "../utils/auth";
 import { useState, useEffect } from "react";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/tasks":    "Tasks",
   "/earn":     "Earn",
   "/earnings": "Earnings",
   "/payout":   "Payout",
@@ -35,7 +34,7 @@ export default function Navbar() {
 
         {/* Logo + page title */}
         <div className="flex items-center gap-3">
-          <Link to="/tasks" className="flex items-center gap-2 flex-shrink-0" aria-label="EarnStack home">
+          <Link to="/earn" className="flex items-center gap-2 flex-shrink-0" aria-label="EarnStack home">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <rect x="3" y="14" width="18" height="3" rx="1.5" fill="var(--primary)" opacity="0.35"/>
               <rect x="3" y="10" width="18" height="3" rx="1.5" fill="var(--primary)" opacity="0.65"/>
@@ -64,7 +63,6 @@ export default function Navbar() {
 
           {/* Desktop nav links */}
           <nav className="hidden sm:flex items-center gap-1" aria-label="Main navigation">
-            <NavLink to="/tasks" label="Tasks" pathname={location.pathname} />
             <NavLink to="/earn" label="Earn" pathname={location.pathname} />
             <NavLink to="/earnings" label="Earnings" pathname={location.pathname} />
           </nav>

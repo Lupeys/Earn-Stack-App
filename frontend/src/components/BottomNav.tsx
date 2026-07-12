@@ -8,16 +8,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    to: "/tasks",
-    label: "Tasks",
-    icon: (active) => (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <path d="M9 12h6M12 9v6"/>
-      </svg>
-    ),
-  },
-  {
     to: "/earn",
     label: "Earn",
     icon: (active) => (
@@ -57,7 +47,7 @@ export default function BottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Mobile navigation"
     >
-      <div className="grid grid-cols-4 h-14">
+      <div className="grid grid-cols-3 h-14">
         {NAV_ITEMS.map((item) => {
           const active = pathname === item.to || pathname.startsWith(item.to + "/");
           return (
