@@ -4,9 +4,16 @@ import { useEffect, useState, type ReactElement } from "react";
 
 export default function Home() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [showPwaBanner, setShowPwaBanner] = useState(false);
 
   useEffect(() => {
     setLoggedIn(isLoggedIn());
+    // Show iOS PWA hint only on iOS Safari when not already installed
+    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isInStandaloneMode = ("standalone" in window.navigator) && (window.navigator as Navigator & { standalone?: boolean }).standalone;
+    if (isIos && !isInStandaloneMode) {
+      setShowPwaBanner(true);
+    }
   }, []);
 
   return (
@@ -98,38 +105,78 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust signals */}
-      <section className="max-w-4xl mx-auto px-5 sm:px-8 py-14">
-        <p className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-widest mb-6">Built for trust</p>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <TrustCard
-            icon="shield"
-            title="Verified users only"
-            body="Every user verifies once before accessing offers. Real Canadians, not bots."
-          />
-          <TrustCard
-            icon="dollar"
-            title="Transparent payouts"
-            body="Payout amounts are shown up front. No hidden fees. Cash out at $5 CAD via PayPal."
-          />
-          <TrustCard
-            icon="lock"
-            title="Fraud-protected"
-            body="Device checks, velocity limits, and manual payout review keep the platform clean."
-          />
-          <TrustCard
-            icon="check"
-            title="No fake urgency"
-            body="No spin wheels, countdown timers, or inflated earnings claims. Honest pay for real work."
-          />
+      {/* Social proof */}
+      <section className="border-t border-[var(--border)] bg-[var(--background)]">
+        <div className="max-w-4xl mx-auto px-5 sm:px-8 py-12 text-center">
+          <p className="text-sm text-[var(--foreground-muted)] mb-3">
+            Canadians are earning modest side cash through verified partner offers.
+          </p>
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-[var(--foreground-faint)]">
+            <span>&#x2713;&nbsp; No subscription</span>
+            <span>&#x2713;&nbsp; Free to join</span>
+            <span>&#x2713;&nbsp; Canadian accounts only</span>
+            <span>&#x2713;&nbsp; PayPal cashout</span>
+          </div>
         </div>
       </section>
+
+      {/* Trust signals */}
+      <section className="border-t border-[var(--border)] bg-[var(--surface)]">
+        <div className="max-w-4xl mx-auto px-5 sm:px-8 py-14">
+          <p className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-widest mb-6">Built for trust</p>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <TrustCard
+              icon="shield"
+              title="Verified users only"
+              body="Every user verifies once before accessing offers. Real Canadians, not bots."
+            />
+            <TrustCard
+              icon="dollar"
+              title="Transparent payouts"
+              body="Payout amounts are shown up front. No hidden fees. Cash out at $5 CAD via PayPal."
+            />
+            <TrustCard
+              icon="lock"
+              title="Fraud-protected"
+              body="Device checks, velocity limits, and manual payout review keep the platform clean."
+            />
+            <TrustCard
+              icon="check"
+              title="No fake urgency"
+              body="No spin wheels, countdown timers, or inflated earnings claims. Honest pay for real work."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* iOS PWA banner */}
+      {showPwaBanner && (
+        <div className="border-t border-[var(--border)] bg-[var(--surface)]">
+          <div className="max-w-4xl mx-auto px-5 sm:px-8 py-4 flex items-start gap-3">
+            <svg className="flex-shrink-0 mt-0.5 text-[var(--primary)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2v10M8 6l4-4 4 4"/><rect x="3" y="14" width="18" height="8" rx="2"/></svg>
+            <p className="text-xs text-[var(--foreground-muted)] leading-relaxed">
+              <strong className="text-[var(--foreground)] font-medium">Add to Home Screen</strong> for the full app experience — tap the Share button{" "}
+              <svg className="inline-block" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>{" "}
+              in Safari, then choose &ldquo;Add to Home Screen.&rdquo;
+            </p>
+            <button
+              onClick={() => setShowPwaBanner(false)}
+              className="ml-auto flex-shrink-0 text-[var(--foreground-faint)] hover:text-[var(--foreground-muted)] transition-colors p-1"
+              aria-label="Dismiss install hint"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-[var(--border)] bg-[var(--surface)]">
         <div className="max-w-4xl mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-[var(--foreground-faint)]">
           <span>EarnStack &copy; {new Date().getFullYear()} — Built in Canada for Canadians</span>
           <div className="flex items-center gap-4">
+            <Link to="/privacy" className="hover:text-[var(--foreground-muted)] transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-[var(--foreground-muted)] transition-colors">Terms</Link>
             <a href="https://earnstack.ca" className="hover:text-[var(--foreground-muted)] transition-colors" target="_blank" rel="noopener noreferrer">earnstack.ca</a>
           </div>
         </div>
