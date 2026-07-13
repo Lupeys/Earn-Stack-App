@@ -1,385 +1,325 @@
-import { Link, useNavigate } from "react-router-dom";
-import { isLoggedIn } from "../utils/auth";
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-// ── SVG icon helpers ──────────────────────────────────────────
-
-const HourglassIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4M6 20h12" />
+// --- SVG Icons ---
+const CheckCircleIcon = ({ className = 'w-5 h-5 text-[#4A8B71]' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
   </svg>
 );
 
-const ArrowRight = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12h14M12 5l7 7-7 7" />
+const HourglassIcon = () => (
+  <svg className="w-8 h-8 text-[#4A8B71]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2M6 2h12M6 22h12M8 2v4a4 4 0 008 0V2M8 22v-4a4 4 0 018 0v4" />
   </svg>
 );
 
-const CheckCircle = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+const NavIconTasks = ({ active }: { active: boolean }) => (
+  <svg className={`w-6 h-6 mb-1 ${active ? 'text-[#64B594]' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
   </svg>
 );
 
-const MailIcon = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+const NavIconEarn = ({ active }: { active: boolean }) => (
+  <svg className={`w-6 h-6 mb-1 ${active ? 'text-[#64B594]' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
   </svg>
 );
 
-type NavTabType = "tasks" | "earn" | "earnings" | "cashout";
+const NavIconEarnings = ({ active }: { active: boolean }) => (
+  <svg className={`w-6 h-6 mb-1 ${active ? 'text-[#64B594]' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
 
-const NavIcon = ({ type, active }: { type: NavTabType; active: boolean }) => {
-  const cls = `w-5 h-5 ${active ? "text-[#5FA090]" : "text-slate-500"}`;
-  switch (type) {
-    case "tasks":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-      );
-    case "earn":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      );
-    case "earnings":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      );
-    case "cashout":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      );
-  }
-};
-
-// ── Main component ────────────────────────────────────────────
+const NavIconCashOut = ({ active }: { active: boolean }) => (
+  <svg className={`w-6 h-6 mb-1 ${active ? 'text-[#64B594]' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+  </svg>
+);
 
 export default function Home() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [showPwaBanner, setShowPwaBanner] = useState(false);
-  const [activeTab, setActiveTab] = useState<NavTabType>("tasks");
-  const [emailInput, setEmailInput] = useState("");
-  const [isNotified, setIsNotified] = useState(false);
-  const [emailError, setEmailError] = useState("");
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'tasks' | 'earn' | 'earnings' | 'cashout'>('tasks');
+  const [notifyEmail, setNotifyEmail] = useState('');
+  const [notifySubmitted, setNotifySubmitted] = useState(false);
+  const [notifyError, setNotifyError] = useState('');
 
-  useEffect(() => {
-    setLoggedIn(isLoggedIn());
-    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-    const isInStandaloneMode =
-      "standalone" in window.navigator &&
-      (window.navigator as Navigator & { standalone?: boolean }).standalone;
-    if (isIos && !isInStandaloneMode) setShowPwaBanner(true);
-  }, []);
+  const balance = user?.balance ?? 0;
+  const canCashOut = balance >= 5;
 
-  const handleNotifySubmit = (e: React.FormEvent) => {
+  function handleTabNav(tab: 'tasks' | 'earn' | 'earnings' | 'cashout') {
+    setActiveTab(tab);
+    if (!user) { navigate('/login'); return; }
+    if (tab === 'earn') navigate('/earn');
+    if (tab === 'earnings') navigate('/earnings');
+    if (tab === 'cashout') navigate('/payout');
+  }
+
+  function handleNotifySubmit(e: React.FormEvent) {
     e.preventDefault();
-    setEmailError("");
-    if (!emailInput || !emailInput.includes("@") || !emailInput.includes(".")) {
-      setEmailError("Please enter a valid email address.");
+    if (!notifyEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
+      setNotifyError('Please enter a valid email address.');
       return;
     }
-    setIsNotified(true);
-  };
+    setNotifyError('');
+    setNotifySubmitted(true);
+  }
 
-  const handleNavTab = (tab: NavTabType) => {
-    setActiveTab(tab);
-    if (loggedIn) {
-      navigate(`/${tab === "cashout" ? "cashout" : tab}`);
-    } else {
-      navigate("/login");
-    }
-  };
-
-  // Static contributor state for landing preview
-  const completedTasks = 0;
-  const totalTasks = 15;
-  const progressPct = Math.min((completedTasks / totalTasks) * 100, 100);
+  const avatarInitial = user?.email?.[0]?.toUpperCase() ?? 'G';
 
   return (
-    <div className="min-h-screen bg-[#0C0F12] text-slate-100 flex flex-col antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#111A16] flex justify-center selection:bg-[#4A8B71]/30">
+      <div className="w-full max-w-[420px] bg-[#F4F6F4] relative shadow-2xl overflow-hidden flex flex-col font-sans min-h-screen">
 
-      {/* ── iOS PWA banner ──────────────────────────────────── */}
-      {showPwaBanner && (
-        <div className="bg-[#1A2520] border-b border-[#2a3a32] px-4 py-3 flex items-start gap-3">
-          <svg className="flex-shrink-0 mt-0.5 text-[#5FA090]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
-          </svg>
-          <p className="text-[11px] text-slate-400 leading-relaxed flex-1">
-            <strong className="text-slate-200 font-semibold">Add to Home Screen</strong> — tap the Share button in Safari, then choose &ldquo;Add to Home Screen&rdquo; for the full app experience.
-          </p>
-          <button onClick={() => setShowPwaBanner(false)} className="flex-shrink-0 text-slate-500 hover:text-slate-300 transition-colors p-1" aria-label="Dismiss">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      )}
+        {/* Deep green gradient header background */}
+        <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-[#103D2E] via-[#144A37] to-[#F4F6F4] z-0 pointer-events-none" />
 
-      {/* ── App shell ───────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col max-w-sm mx-auto w-full relative">
-
-        {/* ── Top nav bar ─────────────────────────────────── */}
-        <nav className="bg-[#1E2A24] py-3.5 px-5 flex justify-between items-center shrink-0 border-b border-[#2a3a32] sticky top-0 z-30">
-          <span className="text-base font-black tracking-tight">
-            Earn<span className="text-[#5FA090]">Stack</span>
-          </span>
-          {loggedIn ? (
-            <Link to="/earn" className="relative">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-[#5FA090]/30 to-[#5FA090]/70 border border-slate-700 flex items-center justify-center font-bold text-xs text-white">
-                U
-              </div>
-              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#5FA090] border-2 border-[#1E2A24]" />
-            </Link>
-          ) : (
-            <div className="flex items-center gap-1">
-              <Link to="/login" className="px-3 py-1.5 text-sm text-slate-300 hover:bg-white/10 rounded-lg transition-colors">Sign in</Link>
-              <Link to="/register" className="px-3 py-1.5 text-sm font-semibold bg-[#4E8F7C] hover:bg-[#2F6757] text-white rounded-lg transition-colors">Join</Link>
-            </div>
-          )}
-        </nav>
-
-        {/* ── Scrollable content ──────────────────────────── */}
-        <div className="flex-1 overflow-y-auto pb-24">
-
-          {/* ── Gradient mesh hero zone ─────────────────── */}
-          <div className="relative pt-6 px-5 pb-8 bg-gradient-to-b from-[#1E2A24] to-[#0C0F12] flex flex-col shrink-0">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#4E8F7C18_0%,_transparent_65%)] pointer-events-none" />
-
-            {/* Balance card */}
-            <div className="relative w-full bg-[#1A2520] text-slate-100 rounded-2xl p-5 border border-emerald-500/10 shadow-xl flex flex-col z-10">
-              <div className="flex justify-between items-start">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold tracking-widest text-emerald-400/80 uppercase">Available Cash Balance</span>
-                  <span className="text-4xl font-extrabold tracking-tighter mt-1.5 font-mono select-all">
-                    $0.00
-                  </span>
-                  <span className="text-[11px] font-medium text-slate-400 mt-1">
-                    Reviewed within 1–2 business days
-                  </span>
-                </div>
-                {/* Verified badge */}
-                <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded border border-emerald-500/20 shrink-0">
-                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Verified
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-800/60">
-                <span className="text-xs text-slate-400">Min. payout $5.00 CAD</span>
-                {loggedIn ? (
-                  <Link
-                    to="/cashout"
-                    className="px-4 py-1.5 text-xs font-bold bg-[#F5F7F4] text-[#1E2A24] border border-slate-200/20 rounded-full hover:bg-slate-200 active:scale-95 transition-all shadow-md"
-                  >
-                    Cash Out →
-                  </Link>
-                ) : (
-                  <Link
-                    to="/register"
-                    className="px-4 py-1.5 text-xs font-bold bg-[#5FA090] text-slate-950 rounded-full hover:bg-[#5FA090]/90 active:scale-95 transition-all shadow-md"
-                  >
-                    Get started →
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Contributor progress strip ──────────────── */}
-          <div className="px-5 mt-[-12px] relative z-20">
-            <div className="w-full bg-[#1A2520] border border-emerald-500/10 rounded-xl p-4 shadow-sm flex flex-col">
-              <div className="flex justify-between items-center mb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-200">Reliable Contributor</span>
-                  <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                </div>
-                <span className="text-[11px] font-mono font-semibold text-slate-400">
-                  {completedTasks} of {totalTasks} tasks to Verified
-                </span>
-              </div>
-              <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#5FA090]/70 to-[#5FA090] rounded-full transition-all duration-500"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-500 mt-2">
-                Complete {totalTasks} tasks to unlock Verified status and higher-value offers.
-              </p>
-            </div>
-          </div>
-
-          {/* ── Tasks section ───────────────────────────── */}
-          <div className="px-5 mt-6">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-sm font-black tracking-tight text-slate-100 uppercase">Tasks</h2>
-              <span className="text-xs font-bold text-[#5FA090]">Verified Payouts Only</span>
-            </div>
-
-            {/* Sponsors coming soon card */}
-            <div className="bg-[#1A2520] border border-emerald-500/10 rounded-2xl p-5 flex flex-col items-center text-center">
-              <div className="h-10 w-10 rounded-full bg-[#5FA090]/10 flex items-center justify-center mb-3">
-                <HourglassIcon className="w-5 h-5 text-[#5FA090]" />
-              </div>
-              <h3 className="text-sm font-extrabold text-slate-100 tracking-tight">Sponsors coming soon.</h3>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed max-w-xs">
-                We're onboarding verified Canadian sponsors. Real tasks with transparent payouts — no hype, no penny grind.
-              </p>
-
-              {/* Notify form */}
-              <div className="w-full mt-4 pt-4 border-t border-emerald-500/10">
-                {isNotified ? (
-                  <div className="flex items-center justify-center gap-2 text-xs font-bold text-[#5FA090]">
-                    <CheckCircle className="w-4 h-4" />
-                    You're on the list — we'll email you when tasks go live.
-                  </div>
-                ) : (
-                  <form onSubmit={handleNotifySubmit} className="flex flex-col gap-2 w-full">
-                    <div className="flex gap-1.5 w-full">
-                      <input
-                        type="email"
-                        placeholder="Your email address"
-                        value={emailInput}
-                        onChange={(e) => { setEmailInput(e.target.value); setEmailError(""); }}
-                        className="flex-1 px-3 py-2 text-xs bg-[#0C0F12] border border-emerald-500/15 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#5FA090] text-slate-200 placeholder:text-slate-600"
-                      />
-                      <button
-                        type="submit"
-                        className="px-3 py-2 bg-[#5FA090] hover:bg-[#5FA090]/90 active:scale-95 text-slate-950 text-xs font-extrabold rounded-lg transition-all flex items-center gap-1 shrink-0"
-                      >
-                        <MailIcon />
-                        Notify me
-                      </button>
-                    </div>
-                    {emailError && (
-                      <p className="text-[11px] text-red-400 text-left">{emailError}</p>
-                    )}
-                    <p className="text-[10px] text-slate-600 text-left">Canadian email addresses only. No spam.</p>
-                  </form>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ── How it works strip ──────────────────────── */}
-          <div className="px-5 mt-6 pt-5 border-t border-slate-800/50">
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { n: "1", label: "Complete tasks", sub: "On your schedule" },
-                { n: "2", label: "Get verified", sub: "Real users only" },
-                { n: "3", label: "Cash out via PayPal", sub: "Manual review" },
-              ].map(({ n, label, sub }) => (
-                <div key={n} className="flex flex-col items-center text-center">
-                  <span className="h-6 w-6 rounded-full bg-[#5FA090]/10 text-[#5FA090] font-black text-xs flex items-center justify-center mb-1.5 border border-[#5FA090]/20">
-                    {n}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-300 leading-snug">{label}</span>
-                  <span className="text-[9px] text-slate-500 mt-0.5">{sub}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Recent activity ─────────────────────────── */}
-          <div className="px-5 mt-6 pb-4 pt-5 border-t border-slate-800/50">
-            <h2 className="text-xs font-black uppercase text-slate-500 tracking-wider mb-3">Recent</h2>
-            {loggedIn ? (
-              <Link
-                to="/earnings"
-                className="flex items-center justify-between p-3 rounded-xl bg-[#1A2520] border border-emerald-500/10 hover:border-emerald-500/20 transition-colors"
-              >
-                <span className="text-xs text-slate-400">View your earnings ledger</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-              </Link>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {/* Static placeholder entries — no fake names or amounts */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-[#1A2520] border border-emerald-500/10 opacity-50 select-none">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-7 w-7 rounded-full bg-slate-800 flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-slate-400">Member cashed out</span>
-                      <span className="text-[9px] text-slate-600">via PayPal</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-extrabold text-[#5FA090] font-mono">–––</span>
-                    <svg className="w-3 h-3 text-emerald-500/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-[#1A2520] border border-emerald-500/10 opacity-30 select-none">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-7 w-7 rounded-full bg-slate-800 flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-slate-400">Member cashed out</span>
-                      <span className="text-[9px] text-slate-600">via PayPal</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-extrabold text-[#5FA090] font-mono">–––</span>
-                    <svg className="w-3 h-3 text-emerald-500/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-                  </div>
-                </div>
-                <Link
-                  to="/register"
-                  className="mt-1 text-center text-xs font-semibold text-[#5FA090] hover:text-[#5FA090]/80 transition-colors py-1"
+        {/* Header */}
+        <header className="relative z-10 flex justify-between items-center px-6 pt-12 pb-4">
+          <h1 className="text-2xl font-semibold tracking-tight text-white">EarnStack</h1>
+          <div className="relative">
+            {user ? (
+              <>
+                <button
+                  onClick={logout}
+                  className="w-10 h-10 rounded-full bg-[#4A8B71] flex items-center justify-center text-white font-bold text-base border-2 border-[#1B2A23]"
+                  aria-label="Logged in — tap to sign out"
+                  title="Sign out"
                 >
-                  Create an account to see your activity →
-                </Link>
-              </div>
+                  {avatarInitial}
+                </button>
+                <span className="absolute top-0 -right-0.5 w-3.5 h-3.5 bg-[#4ADE80] border-2 border-[#103D2E] rounded-full" />
+              </>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="text-sm font-semibold text-[#64B594] border border-[#4A8B71] rounded-full px-4 py-1.5 hover:bg-[#4A8B71]/10 transition-colors"
+              >
+                Sign in
+              </button>
             )}
           </div>
+        </header>
 
-          {/* ── Footer trust line ───────────────────────── */}
-          <div className="px-5 py-6 border-t border-slate-800/40 flex flex-col gap-3">
-            <p className="text-[10px] text-slate-600 leading-relaxed text-center">
-              EarnStack is Canada-only. Earnings may be taxable under CRA guidelines. EarnStack is not financial advice.
-            </p>
-            <div className="flex justify-center gap-4 text-[10px] text-slate-600">
-              <Link to="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
-              <Link to="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
-              <a href="https://earnstack.ca" target="_blank" rel="noopener noreferrer" className="hover:text-slate-400 transition-colors">earnstack.ca</a>
+        {/* Balance Card */}
+        <section className="relative z-10 px-5 mb-8">
+          <div className="bg-[#1C2822] rounded-[24px] p-6 shadow-xl text-white">
+            <p className="text-[#899C94] text-sm mb-1 font-medium tracking-wide">Available Cash Balance</p>
+            <h2 className="text-[52px] leading-none font-bold tracking-tight mb-1 tabular-nums">
+              ${balance.toFixed(2)}
+            </h2>
+            <p className="text-[#556860] text-xs mb-5">CAD · Reviewed within 1–2 business days</p>
+            <div className="flex justify-between items-end">
+              <div>
+                {user && (
+                  <span className="inline-flex items-center gap-1 bg-[#4A8B71]/20 text-[#64B594] text-xs font-semibold px-3 py-1 rounded-full">
+                    <CheckCircleIcon className="w-3.5 h-3.5 text-[#64B594]" />
+                    Verified
+                  </span>
+                )}
+                <p className="text-[#556860] text-xs mt-2">Min. payout $5.00 CAD</p>
+              </div>
+              {canCashOut ? (
+                <button
+                  onClick={() => navigate('/payout')}
+                  className="rounded-full border border-[#4A8B71] text-[#64B594] px-5 py-2 text-sm font-semibold hover:bg-[#4A8B71]/10 active:scale-95 transition-all"
+                >
+                  Cash Out →
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="rounded-full border border-[#2E4A3E] text-[#3D5A4E] px-5 py-2 text-sm font-semibold cursor-not-allowed"
+                  title="Minimum $5.00 CAD required to cash out"
+                >
+                  Cash Out
+                </button>
+              )}
             </div>
           </div>
+        </section>
 
-        </div>{/* end scrollable */}
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto pb-32 z-10 relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
-        {/* ── Bottom nav bar ──────────────────────────────── */}
-        <div className="absolute bottom-0 left-0 right-0 bg-[#1E2A24] border-t border-slate-800/60 px-6 py-2.5 flex justify-between items-center z-30">
-          {(["tasks", "earn", "earnings", "cashout"] as NavTabType[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleNavTab(tab)}
-              className="flex flex-col items-center gap-1 flex-1 relative min-h-[44px] justify-center"
-              aria-label={tab}
-            >
-              {activeTab === tab && (
-                <span className="absolute -top-2.5 w-8 h-0.5 bg-[#5FA090] rounded-full" />
+          {/* Today's Tasks */}
+          <section className="mb-8">
+            <div className="flex justify-between items-center px-6 mb-4">
+              <h3 className="text-[22px] font-bold tracking-tight text-[#111A16]">Today's Tasks</h3>
+              {user && (
+                <button
+                  onClick={() => navigate('/tasks')}
+                  className="text-[#3F7A63] text-[15px] font-semibold hover:opacity-80"
+                >
+                  View all →
+                </button>
               )}
-              <NavIcon type={tab} active={activeTab === tab} />
-              <span className={`text-[9px] font-bold uppercase tracking-wider capitalize ${activeTab === tab ? "text-[#5FA090]" : "text-slate-500"}`}>
-                {tab === "cashout" ? "Cash Out" : tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </span>
-            </button>
-          ))}
+            </div>
+
+            {/* Horizontal scroll task cards */}
+            <div className="flex overflow-x-auto gap-4 px-6 pb-4 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+
+              {/* Pre-launch placeholder card */}
+              <div className="bg-white rounded-[24px] p-5 min-w-[200px] shadow-sm shrink-0 snap-start border border-[#E8ECE9] flex flex-col items-center justify-center text-center gap-3">
+                <HourglassIcon />
+                <p className="text-[15px] font-semibold text-[#111A16] leading-snug">Sponsor tasks<br/>coming soon</p>
+                <p className="text-[13px] text-[#718078] leading-snug">Get notified when<br/>tasks go live</p>
+              </div>
+
+              {/* Earn page card */}
+              <div className="bg-white rounded-[24px] p-5 min-w-[170px] shadow-sm shrink-0 snap-start border border-[#E8ECE9]">
+                <span className="inline-block bg-[#F2F5F3] text-[#46534E] px-3 py-1.5 rounded-full text-[13px] font-semibold mb-4 tracking-tight">
+                  Live Now
+                </span>
+                <h4 className="text-[17px] font-bold text-[#111A16] leading-snug mb-6 max-w-[120px]">
+                  Offerwall<br/>Surveys
+                </h4>
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="text-[#3F7A63] font-bold text-base tracking-tight">Varies</span>
+                  <button
+                    onClick={() => user ? navigate('/earn') : navigate('/login')}
+                    className="bg-[#3F7A63] text-white rounded-full px-4 py-1.5 text-sm font-semibold hover:bg-[#346652] transition-colors active:scale-95"
+                  >
+                    Earn →
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          {/* Notify form (pre-launch) */}
+          {!notifySubmitted ? (
+            <section className="px-6 mb-8">
+              <div className="bg-white rounded-[20px] border border-[#E8ECE9] p-5 shadow-sm">
+                <p className="text-[15px] font-semibold text-[#111A16] mb-1">Get notified when tasks launch</p>
+                <p className="text-[13px] text-[#718078] mb-4">We'll email you when sponsor-funded tasks are ready.</p>
+                <form onSubmit={handleNotifySubmit} className="flex gap-2">
+                  <input
+                    type="email"
+                    value={notifyEmail}
+                    onChange={e => { setNotifyEmail(e.target.value); setNotifyError(''); }}
+                    placeholder="your@email.com"
+                    className="flex-1 rounded-full border border-[#DDE6E1] bg-[#F4F6F4] px-4 py-2 text-sm text-[#111A16] placeholder:text-[#9AADA6] focus:outline-none focus:ring-2 focus:ring-[#4A8B71]/40"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-[#3F7A63] text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-[#346652] transition-colors active:scale-95"
+                  >
+                    Notify me
+                  </button>
+                </form>
+                {notifyError && <p className="text-[#A36A2B] text-xs mt-2 pl-1">{notifyError}</p>}
+              </div>
+            </section>
+          ) : (
+            <section className="px-6 mb-8">
+              <div className="bg-white rounded-[20px] border border-[#E8ECE9] p-5 shadow-sm flex items-center gap-3">
+                <CheckCircleIcon className="w-5 h-5 text-[#3E7A43] shrink-0" />
+                <p className="text-[14px] text-[#111A16]">You're on the list — we'll email you when tasks go live.</p>
+              </div>
+            </section>
+          )}
+
+          {/* How it works */}
+          <section className="px-6 mb-10">
+            <h3 className="text-[22px] font-bold tracking-tight text-[#111A16] mb-5">How it works</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="flex flex-col">
+                <div className="w-6 h-6 rounded-full border border-[#3F7A63] flex items-center justify-center text-[#3F7A63] text-xs font-bold mb-3">1</div>
+                <h4 className="text-[15px] font-semibold text-[#111A16] leading-tight mb-1">Complete tasks</h4>
+                <p className="text-[13px] text-[#718078] leading-snug">Submit proof for each sponsor-funded task</p>
+              </div>
+              <div className="flex flex-col">
+                <div className="w-6 h-6 rounded-full border border-[#3F7A63] flex items-center justify-center text-[#3F7A63] text-xs font-bold mb-3">2</div>
+                <h4 className="text-[15px] font-semibold text-[#111A16] leading-tight mb-1">Get verified</h4>
+                <p className="text-[13px] text-[#718078] leading-snug">Manual review keeps payouts fair and secure</p>
+              </div>
+              <div className="flex flex-col">
+                <div className="w-6 h-6 rounded-full border border-[#3F7A63] flex items-center justify-center text-[#3F7A63] text-xs font-bold mb-3">3</div>
+                <h4 className="text-[15px] font-semibold text-[#111A16] leading-tight mb-1">Cash out</h4>
+                <p className="text-[13px] text-[#718078] leading-snug">PayPal payout once your balance reaches $5 CAD</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Recent activity */}
+          <section className="px-6 mb-4">
+            <h3 className="text-[22px] font-bold tracking-tight text-[#111A16] mb-5">Recent</h3>
+            {user ? (
+              <div className="space-y-1">
+                <p className="text-[14px] text-[#718078]">Your completed tasks and earnings will appear here.</p>
+                <button
+                  onClick={() => navigate('/earnings')}
+                  className="text-[#3F7A63] text-[14px] font-semibold hover:opacity-80 mt-2 block"
+                >
+                  View earnings ledger →
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Blurred placeholder rows — no fake names or amounts */}
+                {[1, 2].map(i => (
+                  <div key={i} className="flex items-center justify-between blur-[3px] select-none pointer-events-none" aria-hidden="true">
+                    <div className="flex items-center gap-4">
+                      <div className="w-[46px] h-[46px] rounded-full bg-[#DDE6E1]" />
+                      <div className="space-y-1.5">
+                        <div className="h-3 w-28 bg-[#DDE6E1] rounded-full" />
+                        <div className="h-3 w-20 bg-[#DDE6E1] rounded-full" />
+                      </div>
+                    </div>
+                    <div className="h-3 w-12 bg-[#DDE6E1] rounded-full" />
+                  </div>
+                ))}
+                <button
+                  onClick={() => navigate('/register')}
+                  className="w-full mt-4 rounded-full bg-[#3F7A63] text-white py-3 text-sm font-semibold hover:bg-[#346652] transition-colors active:scale-95"
+                >
+                  Create a free account →
+                </button>
+              </div>
+            )}
+          </section>
+
         </div>
 
-      </div>{/* end app shell */}
+        {/* Bottom Navigation */}
+        <nav className="absolute bottom-0 left-0 w-full bg-[#1C2822] rounded-t-[32px] px-8 pt-4 pb-8 z-50">
+          <div className="flex justify-between items-center relative">
+
+            {activeTab === 'tasks'    && <div className="absolute top-[-16px] left-[6%]  w-[12%] h-[3px] bg-[#64B594] rounded-full" />}
+            {activeTab === 'earn'     && <div className="absolute top-[-16px] left-[32%] w-[12%] h-[3px] bg-[#64B594] rounded-full" />}
+            {activeTab === 'earnings' && <div className="absolute top-[-16px] left-[58%] w-[12%] h-[3px] bg-[#64B594] rounded-full" />}
+            {activeTab === 'cashout'  && <div className="absolute top-[-16px] left-[84%] w-[12%] h-[3px] bg-[#64B594] rounded-full" />}
+
+            <button onClick={() => handleTabNav('tasks')} className="flex flex-col items-center gap-1 w-16">
+              <NavIconTasks active={activeTab === 'tasks'} />
+              <span className={`text-[11px] font-semibold tracking-wide ${activeTab === 'tasks' ? 'text-[#64B594]' : 'text-[#899C94]'}`}>Tasks</span>
+            </button>
+
+            <button onClick={() => handleTabNav('earn')} className="flex flex-col items-center gap-1 w-16">
+              <NavIconEarn active={activeTab === 'earn'} />
+              <span className={`text-[11px] font-semibold tracking-wide ${activeTab === 'earn' ? 'text-[#64B594]' : 'text-[#899C94]'}`}>Earn</span>
+            </button>
+
+            <button onClick={() => handleTabNav('earnings')} className="flex flex-col items-center gap-1 w-16">
+              <NavIconEarnings active={activeTab === 'earnings'} />
+              <span className={`text-[11px] font-semibold tracking-wide ${activeTab === 'earnings' ? 'text-[#64B594]' : 'text-[#899C94]'}`}>Earnings</span>
+            </button>
+
+            <button onClick={() => handleTabNav('cashout')} className="flex flex-col items-center gap-1 w-16">
+              <NavIconCashOut active={activeTab === 'cashout'} />
+              <span className={`text-[11px] font-semibold tracking-wide ${activeTab === 'cashout' ? 'text-[#64B594]' : 'text-[#899C94]'}`}>Cash Out</span>
+            </button>
+
+          </div>
+          <div className="w-1/3 h-1 bg-white/20 rounded-full mx-auto mt-6" />
+        </nav>
+
+      </div>
     </div>
   );
 }
